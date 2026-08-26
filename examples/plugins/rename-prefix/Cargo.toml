@@ -1,0 +1,16 @@
+[package]
+name = "reposync-plugin-rename-prefix"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Reference RepoSync WASM plugin: prefix every file path with args.prefix."
+
+[lib]
+crate-type = ["cdylib"]
+
+# This is a standalone example crate (built to wasm32-unknown-unknown), not a
+# member of the RepoSync workspace.
+[workspace]
+
+[dependencies]
+serde_json = "1"

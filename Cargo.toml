@@ -1,0 +1,51 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/cli",
+    "crates/config",
+    "crates/core",
+    "crates/diff",
+    "crates/filesystem",
+    "crates/git",
+    "crates/metadata",
+    "crates/migration",
+    "crates/policy",
+    "crates/state",
+    "crates/sync",
+    "crates/transform",
+    "tests/harness",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Prose docs reference the product name and model types without backticks.
+doc_markdown = "allow"
+# Natural module layout (blob.rs containing Blob, path.rs containing RepoPath).
+module_name_repetitions = "allow"
+
+[workspace.dependencies]
+anyhow = "1"
+base64 = "0.22"
+regex = "1"
+wasmtime = "43"
+clap = { version = "4", features = ["derive"] }
+git2 = "0.19"
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

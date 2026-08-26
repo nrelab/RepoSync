@@ -1,0 +1,20 @@
+[package]
+name = "reposync-migration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "History migration and bidirectional sync engine for RepoSync."
+
+[lints]
+workspace = true
+
+[dependencies]
+reposync-core = { path = "../core" }
+reposync-git = { path = "../git" }
+reposync-state = { path = "../state" }
+reposync-transform = { path = "../transform" }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

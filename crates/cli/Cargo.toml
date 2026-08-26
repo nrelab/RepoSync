@@ -1,0 +1,33 @@
+[package]
+name = "reposync-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "RepoSync command-line interface."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "reposync"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+reposync-config = { path = "../config" }
+reposync-core = { path = "../core" }
+reposync-diff = { path = "../diff" }
+reposync-git = { path = "../git" }
+reposync-migration = { path = "../migration" }
+reposync-policy = { path = "../policy" }
+reposync-state = { path = "../state" }
+reposync-sync = { path = "../sync" }
+reposync-transform = { path = "../transform" }
+
+[dev-dependencies]
+reposync-core = { path = "../core" }
+reposync-git = { path = "../git" }
+reposync-state = { path = "../state" }
+tempfile.workspace = true

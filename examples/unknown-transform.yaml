@@ -1,0 +1,18 @@
+# Demonstrates a parse-time failure: `flter` is not a known transform key.
+pipeline:
+  name: typo-demo
+
+source:
+  type: git
+  url: git@github.com:acme/monorepo.git
+  ref: main
+
+transform:
+  - flter:
+      paths:
+        - packages/sdk/**
+
+destination:
+  type: git
+  url: git@github.com:acme/public-sdk.git
+  branch: main

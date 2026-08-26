@@ -1,0 +1,29 @@
+# Intentionally invalid pipeline. `reposync validate` reports every problem.
+pipeline:
+  name: ""
+
+source:
+  type: git
+  url: git@github.com:acme/monorepo.git
+  ref: ""
+
+transform:
+  - filter:
+      paths: []
+
+  - move:
+      from: packages/sdk
+      to: packages/sdk
+
+  - patch:
+      file: some.patch
+      patch: "diff --git a/x b/x"
+
+  - copy:
+      from: ""
+      to: ""
+
+destination:
+  type: git
+  url: git@github.com:acme/monorepo.git/
+  branch: main

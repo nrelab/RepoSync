@@ -1,0 +1,22 @@
+[package]
+name = "reposync-transform"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Transformation engine for RepoSync: composable transformation DAG over snapshots."
+
+[lints]
+workspace = true
+
+[dependencies]
+reposync-core = { path = "../core" }
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+wasmtime.workspace = true
+
+[dev-dependencies]
+wat = "1"

@@ -1,0 +1,18 @@
+[package]
+name = "reposync-git"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Git backend abstraction for RepoSync: clone, fetch, checkout, diff, commit, push."
+
+[lints]
+workspace = true
+
+[dependencies]
+git2.workspace = true
+reposync-core = { path = "../core" }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,21 @@
+[package]
+name = "reposync-sync"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Sync engine for RepoSync: read source, transform, diff, commit, push."
+
+[lints]
+workspace = true
+
+[dependencies]
+reposync-core = { path = "../core" }
+reposync-diff = { path = "../diff" }
+reposync-git = { path = "../git" }
+reposync-transform = { path = "../transform" }
+thiserror.workspace = true
+
+[dev-dependencies]
+git2.workspace = true
+tempfile.workspace = true

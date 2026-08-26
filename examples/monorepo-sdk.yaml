@@ -1,0 +1,35 @@
+# The canonical example from the design doc.
+# NOTE: `replace` is a Tier-2 transform, so this file does NOT pass
+# `reposync validate` yet — it fails with "not yet implemented" until M4/M13.
+pipeline:
+  name: public-sdk
+
+source:
+  type: git
+  url: git@github.com:org/internal.git
+  ref: main
+
+transform:
+  - filter:
+      paths:
+        - packages/sdk/**
+        - LICENSE
+
+  - move:
+      from: packages/sdk
+      to: .
+
+  - replace:
+      file: package.json
+      replacements:
+        "@internal/": "@public/"
+
+  - delete:
+      paths:
+        - "**/.internal"
+        - "**/secrets/**"
+
+destination:
+  type: git
+  url: git@github.com:org/sdk.git
+  branch: main

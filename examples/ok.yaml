@@ -1,0 +1,37 @@
+# Valid pipeline: extract packages/sdk from a monorepo into a public repo.
+# Uses only Tier-1 transforms (filter, move, delete) — passes `reposync validate`.
+pipeline:
+  name: public-sdk
+
+source:
+  type: git
+  url: git@github.com:acme/monorepo.git
+  ref: main
+
+transform:
+  - filter:
+      paths:
+        - packages/sdk/**
+        - LICENSE
+
+  - move:
+      from: packages/sdk
+      to: .
+
+  - delete:
+      paths:
+        - "**/.internal"
+        - "**/secrets/**"
+
+destination:
+  type: git
+  url: git@github.com:acme/public-sdk.git
+  branch: main
+
+policy:
+  deny:
+    - "*.pem"
+    - "*.key"
+    - .env
+    - "**/credentials/**"
+  max_deleted_files: 100

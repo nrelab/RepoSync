@@ -1,0 +1,17 @@
+[package]
+name = "reposync-policy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Policy engine for RepoSync: safety gates before push."
+
+[lints]
+workspace = true
+
+[dependencies]
+reposync-config = { path = "../config" }
+reposync-core = { path = "../core" }
+reposync-diff = { path = "../diff" }
+reposync-transform = { path = "../transform" }
+thiserror.workspace = true

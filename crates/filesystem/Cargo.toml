@@ -1,0 +1,17 @@
+[package]
+name = "reposync-filesystem"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Filesystem bridging for RepoSync: snapshot to working tree and back."
+
+[lints]
+workspace = true
+
+[dependencies]
+reposync-core = { path = "../core" }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

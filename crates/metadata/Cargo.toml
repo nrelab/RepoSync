@@ -1,0 +1,12 @@
+[package]
+name = "reposync-metadata"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Metadata handling for RepoSync: author mapping and commit message transforms."
+
+[lints]
+workspace = true
+
+[dependencies]
