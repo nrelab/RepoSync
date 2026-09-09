@@ -171,10 +171,7 @@ impl PluginTransform {
                 message: format!("missing `transform`: {error}"),
             })?;
         let out_ptr = transform
-            .call(
-                &mut store,
-                (input_ptr, input_bytes.len() as i32),
-            )
+            .call(&mut store, (input_ptr, input_bytes.len() as i32))
             .map_err(|error| Error::Plugin {
                 name: self.name.clone(),
                 message: format!("`transform` failed: {error}"),
@@ -197,10 +194,11 @@ impl PluginTransform {
                 message: format!("failed to read output: {error}"),
             })?;
 
-        let envelope: PluginInput = serde_json::from_slice(&out_buf).map_err(|error| Error::Plugin {
-            name: self.name.clone(),
-            message: format!("plugin returned invalid snapshot JSON: {error}"),
-        })?;
+        let envelope: PluginInput =
+            serde_json::from_slice(&out_buf).map_err(|error| Error::Plugin {
+                name: self.name.clone(),
+                message: format!("plugin returned invalid snapshot JSON: {error}"),
+            })?;
         Ok(envelope.snapshot)
     }
 }

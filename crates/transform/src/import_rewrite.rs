@@ -33,9 +33,7 @@ impl ImportRewrite {
     }
 }
 
-const SOURCE_EXTENSIONS: &[&str] = &[
-    "ts", "tsx", "js", "jsx", "mjs", "cjs", "cts", "mts",
-];
+const SOURCE_EXTENSIONS: &[&str] = &["ts", "tsx", "js", "jsx", "mjs", "cjs", "cts", "mts"];
 
 impl Transformation for ImportRewrite {
     fn name(&self) -> &'static str {

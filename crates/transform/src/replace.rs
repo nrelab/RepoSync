@@ -89,14 +89,20 @@ mod tests {
         let result = Replace::new("src/**", map).apply(&mut ctx).unwrap();
         assert_eq!(result.changed, 1);
 
-        let rewritten = ctx.snapshot.get(&RepoPath::new("src/index.ts").unwrap()).unwrap();
+        let rewritten = ctx
+            .snapshot
+            .get(&RepoPath::new("src/index.ts").unwrap())
+            .unwrap();
         assert_eq!(
             std::str::from_utf8(rewritten.content.content()).unwrap(),
             "import x from '@public/sdk';"
         );
 
         // README.md did not match the glob, so it is untouched.
-        let readme = ctx.snapshot.get(&RepoPath::new("README.md").unwrap()).unwrap();
+        let readme = ctx
+            .snapshot
+            .get(&RepoPath::new("README.md").unwrap())
+            .unwrap();
         assert_eq!(
             std::str::from_utf8(readme.content.content()).unwrap(),
             "use @internal/sdk here"

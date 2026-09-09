@@ -68,9 +68,7 @@ fn mode_only_change_is_modified_not_renamed() {
         FileMode::File,
     ));
     let mut new = old.clone();
-    new.get_mut(&RepoPath::new("run.sh").unwrap())
-        .unwrap()
-        .mode = FileMode::Executable;
+    new.get_mut(&RepoPath::new("run.sh").unwrap()).unwrap().mode = FileMode::Executable;
 
     let result = diff(&old, &new);
     assert_eq!(result.modified.len(), 1);
@@ -145,7 +143,11 @@ fn pipeline_produces_expected_diff() {
     assert!(renamed.contains(&("packages/sdk/tests/unit.rs".into(), "tests/unit.rs".into())));
 
     assert_eq!(result.removed.len(), 5);
-    let removed: Vec<&str> = result.removed.iter().map(|entry| entry.path.as_str()).collect();
+    let removed: Vec<&str> = result
+        .removed
+        .iter()
+        .map(|entry| entry.path.as_str())
+        .collect();
     for path in [
         "README.md",
         "packages/other/tool.rs",

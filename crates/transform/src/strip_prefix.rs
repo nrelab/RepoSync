@@ -1,4 +1,4 @@
-use crate::{Error, Move, TransformContext, Transformation, TransformResult};
+use crate::{Error, Move, TransformContext, TransformResult, Transformation};
 
 /// Strip a leading path prefix from every file under it.
 ///

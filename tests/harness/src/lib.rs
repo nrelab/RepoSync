@@ -13,7 +13,7 @@ mod tests {
     use git2::{Commit, IndexAddOption, Repository};
     use reposync_core::{Blob, FileEntry, RepoPath, RepositorySnapshot};
     use reposync_git::GitRepo;
-    use reposync_transform::{Transformation, Runner};
+    use reposync_transform::{Runner, Transformation};
 
     fn init_repo(dir: &Path) -> Repository {
         let repo = Repository::init(dir).unwrap();
@@ -25,9 +25,7 @@ mod tests {
 
     fn commit_worktree(repo: &Repository, message: &str) {
         let mut index = repo.index().unwrap();
-        index
-            .add_all(["*"], IndexAddOption::DEFAULT, None)
-            .unwrap();
+        index.add_all(["*"], IndexAddOption::DEFAULT, None).unwrap();
         index.write().unwrap();
         let tree_id = index.write_tree().unwrap();
         let tree = repo.find_tree(tree_id).unwrap();
@@ -37,8 +35,15 @@ mod tests {
             Err(_) => vec![],
         };
         let parent_refs: Vec<&Commit> = parents.iter().collect();
-        repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &parent_refs)
-            .unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            message,
+            &tree,
+            &parent_refs,
+        )
+        .unwrap();
     }
 
     fn run_pipeline(
@@ -165,11 +170,7 @@ mod tests {
 
     #[test]
     fn pipeline_is_deterministic_across_two_runs() {
-        let source = source_files(&[
-            ("a/1.txt", b"x"),
-            ("a/2.txt", b"x"),
-            ("b/1.txt", b"y"),
-        ]);
+        let source = source_files(&[("a/1.txt", b"x"), ("a/2.txt", b"x"), ("b/1.txt", b"y")]);
         let transforms: &[&dyn Transformation] = &[
             &reposync_transform::Filter::new(["a/**"]),
             &reposync_transform::Move::new("a", "z"),

@@ -14,8 +14,6 @@
 //! [`Append`], [`Patch`], [`Metadata`].
 
 mod append;
-#[cfg(test)]
-mod test_utils;
 mod context;
 mod custom;
 mod delete;
@@ -32,6 +30,8 @@ mod relocate;
 mod replace;
 mod runner;
 mod strip_prefix;
+#[cfg(test)]
+mod test_utils;
 mod traits;
 
 pub use append::Append;

@@ -134,15 +134,28 @@ mod tests {
 
     #[test]
     fn accepts_valid_patterns() {
-        for pattern in ["*", "**", "packages/sdk/**", "**/secrets/**", "src/*.rs", "a?c.txt"] {
-            assert!(Glob::new(pattern).is_ok(), "expected `{pattern}` to be valid");
+        for pattern in [
+            "*",
+            "**",
+            "packages/sdk/**",
+            "**/secrets/**",
+            "src/*.rs",
+            "a?c.txt",
+        ] {
+            assert!(
+                Glob::new(pattern).is_ok(),
+                "expected `{pattern}` to be valid"
+            );
         }
     }
 
     #[test]
     fn rejects_invalid_patterns() {
         for pattern in ["", "a//b", "/abs", "trailing/", "\0", "a\0b"] {
-            assert!(Glob::new(pattern).is_err(), "expected `{pattern}` to be rejected");
+            assert!(
+                Glob::new(pattern).is_err(),
+                "expected `{pattern}` to be rejected"
+            );
         }
     }
 

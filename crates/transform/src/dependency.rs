@@ -60,11 +60,18 @@ impl Transformation for DependencyRewrite {
             let mut doc: Value = match serde_json::from_str(text) {
                 Ok(value) => value,
                 Err(error) => {
-                    warnings.push(format!("`{}` is not valid JSON: {error}; skipped", entry.path));
+                    warnings.push(format!(
+                        "`{}` is not valid JSON: {error}; skipped",
+                        entry.path
+                    ));
                     continue;
                 }
             };
-            if rewrite_document(&mut doc, &self.package_rename, self.workspace_version.as_deref()) {
+            if rewrite_document(
+                &mut doc,
+                &self.package_rename,
+                self.workspace_version.as_deref(),
+            ) {
                 let out = serde_json::to_string_pretty(&doc).map_err(|error| Error::Transform {
                     name: self.name().to_owned(),
                     message: format!("failed to serialize `{}`: {error}", entry.path),
@@ -188,7 +195,10 @@ mod tests {
             doc["dependencies"]["@public/cli"],
             Value::String("1.2.3".to_owned())
         );
-        assert_eq!(doc["dependencies"]["lodash"], Value::String("^4.17.0".to_owned()));
+        assert_eq!(
+            doc["dependencies"]["lodash"],
+            Value::String("^4.17.0".to_owned())
+        );
         assert_eq!(
             doc["devDependencies"]["@public/sdk"],
             Value::String("1.2.3".to_owned())

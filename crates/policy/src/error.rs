@@ -17,5 +17,8 @@ pub enum Error {
 
     /// A deny-pattern glob is malformed.
     #[error("invalid policy glob `{pattern}`: {message}")]
-    InvalidGlob { pattern: String, message: &'static str },
+    InvalidGlob {
+        pattern: String,
+        message: &'static str,
+    },
 }

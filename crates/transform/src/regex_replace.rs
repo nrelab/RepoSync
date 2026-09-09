@@ -2,9 +2,7 @@ use regex::Regex;
 use reposync_core::Blob;
 
 use crate::glob::compile_all;
-use crate::{
-    Error, TransformContext, TransformEvent, TransformResult, Transformation,
-};
+use crate::{Error, TransformContext, TransformEvent, TransformResult, Transformation};
 
 /// Replaces every match of a regular expression within files matching `files`.
 #[derive(Debug, Clone)]
@@ -49,10 +47,7 @@ impl Transformation for RegexReplace {
                 continue;
             }
             let Ok(text) = std::str::from_utf8(entry.content.content()) else {
-                warnings.push(format!(
-                    "`{}` is not valid UTF-8; skipped",
-                    entry.path
-                ));
+                warnings.push(format!("`{}` is not valid UTF-8; skipped", entry.path));
                 continue;
             };
             let new = regex.replace_all(text, &self.replacement).to_string();

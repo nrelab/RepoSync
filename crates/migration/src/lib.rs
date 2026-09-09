@@ -9,5 +9,5 @@ mod history;
 mod sync;
 
 pub use error::Error;
-pub use history::{HistoryReport, replay_history};
-pub use sync::{Conflict, SyncReport, SyncStrategy, sync};
+pub use history::{replay_history, HistoryReport};
+pub use sync::{sync, Conflict, SyncReport, SyncStrategy};

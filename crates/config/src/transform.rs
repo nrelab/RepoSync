@@ -63,7 +63,7 @@ impl TransformKind {
             | Self::Rename
             | Self::Replace
             | Self::StripPrefix
-            |             Self::DependencyRewrite
+            | Self::DependencyRewrite
             | Self::ImportRewrite
             | Self::AuthorMapping
             | Self::CommitMessage

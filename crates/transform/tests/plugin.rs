@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use reposync_core::{Blob, FileEntry, RepoPath, RepositorySnapshot};
-use reposync_transform::{PluginTransform, Transformation, TransformContext};
+use reposync_transform::{PluginTransform, TransformContext, Transformation};
 
 /// Identity guest: exports `memory`, `alloc`, and `transform`. `transform`
 /// allocates `[u32 len][bytes]` and copies the input verbatim (a correct

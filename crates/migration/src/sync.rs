@@ -179,7 +179,11 @@ mod tests {
         sync(&internal, &public, &t, &state, SyncStrategy::Fail).unwrap();
 
         // A human edit lands on the public side (no generated marker).
-        commit(&public, &[("a.txt", b"a"), ("human.txt", b"edit")], "Mallory");
+        commit(
+            &public,
+            &[("a.txt", b"a"), ("human.txt", b"edit")],
+            "Mallory",
+        );
 
         let result = sync(&internal, &public, &t, &state, SyncStrategy::Fail);
         let err = result.expect_err("expected a conflict");
@@ -202,11 +206,14 @@ mod tests {
         let t: Vec<&dyn Transformation> = filter.iter().map(|b| &**b).collect();
         sync(&internal, &public, &t, &state, SyncStrategy::Fail).unwrap();
 
-        commit(&public, &[("a.txt", b"a"), ("human.txt", b"edit")], "Mallory");
+        commit(
+            &public,
+            &[("a.txt", b"a"), ("human.txt", b"edit")],
+            "Mallory",
+        );
 
         let report = sync(&internal, &public, &t, &state, SyncStrategy::Import).unwrap();
         assert_eq!(report.imported, 1);
         assert_eq!(internal.history(None).unwrap().len(), 2);
     }
 }
-

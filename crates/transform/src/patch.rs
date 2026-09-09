@@ -227,10 +227,7 @@ mod tests {
     #[test]
     fn patch_transform_rewrites_matching_files() {
         let mut ctx = TransformContext::new(snapshot_from(&[("f.txt", b"one\ntwo\nthree\n")]));
-        let t = Patch::new(
-            "f.txt",
-            "@@ -1,3 +1,3 @@\n one\n-two\n+2\n three\n",
-        );
+        let t = Patch::new("f.txt", "@@ -1,3 +1,3 @@\n one\n-two\n+2\n three\n");
         let result = t.apply(&mut ctx).unwrap();
         assert_eq!(result.changed, 1);
         assert_eq!(

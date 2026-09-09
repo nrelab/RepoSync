@@ -18,9 +18,7 @@ fn init_repo(dir: &Path) -> Repository {
 
 fn commit_worktree(repo: &Repository, message: &str) {
     let mut index = repo.index().unwrap();
-    index
-        .add_all(["*"], IndexAddOption::DEFAULT, None)
-        .unwrap();
+    index.add_all(["*"], IndexAddOption::DEFAULT, None).unwrap();
     index.write().unwrap();
     let tree_id = index.write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
@@ -30,8 +28,15 @@ fn commit_worktree(repo: &Repository, message: &str) {
         Err(_) => vec![],
     };
     let parent_refs: Vec<&Commit> = parents.iter().collect();
-    repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &parent_refs)
-        .unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        message,
+        &tree,
+        &parent_refs,
+    )
+    .unwrap();
 }
 
 fn write_source_files(dir: &Path) {
@@ -121,10 +126,14 @@ fn no_op_run_makes_zero_commits() {
     let syncer = Syncer::new(&source, &dest);
     let commit = CommitSpec::new("sync public sdk");
 
-    let first = syncer.run(&[&filter, &mv], &commit, Some(origin.to_str().unwrap())).unwrap();
+    let first = syncer
+        .run(&[&filter, &mv], &commit, Some(origin.to_str().unwrap()))
+        .unwrap();
     assert!(first.changed);
 
-    let second = syncer.run(&[&filter, &mv], &commit, Some(origin.to_str().unwrap())).unwrap();
+    let second = syncer
+        .run(&[&filter, &mv], &commit, Some(origin.to_str().unwrap()))
+        .unwrap();
     assert!(!second.changed);
     assert_eq!(second.commit_id, None);
     assert!(!second.pushed);
@@ -141,7 +150,11 @@ fn source_change_triggers_incremental_sync() {
     let syncer = Syncer::new(&source, &dest);
 
     syncer
-        .run(&[&filter, &mv], &CommitSpec::new("first"), Some(origin.to_str().unwrap()))
+        .run(
+            &[&filter, &mv],
+            &CommitSpec::new("first"),
+            Some(origin.to_str().unwrap()),
+        )
         .unwrap();
 
     let mut updated = source.head_snapshot().unwrap();
@@ -154,7 +167,11 @@ fn source_change_triggers_incremental_sync() {
         .unwrap();
 
     let report = syncer
-        .run(&[&filter, &mv], &CommitSpec::new("sync extra"), Some(origin.to_str().unwrap()))
+        .run(
+            &[&filter, &mv],
+            &CommitSpec::new("sync extra"),
+            Some(origin.to_str().unwrap()),
+        )
         .unwrap();
     assert!(report.changed);
     assert_eq!(report.diff.added.len(), 1);

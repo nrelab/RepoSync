@@ -35,8 +35,14 @@ pub fn check(policy: &Policy, diff: &SnapshotDiff, output: &RepositorySnapshot) 
     let denied = check_globs(&policy.deny, output);
     let review = check_globs(&policy.require_review, output);
     let deleted_count = diff.removed.len() as u64;
-    let allowed = denied.is_empty() && deleted_count <= policy.max_deleted_files.unwrap_or(u64::MAX);
-    PolicyReport { denied, review, deleted_count, allowed }
+    let allowed =
+        denied.is_empty() && deleted_count <= policy.max_deleted_files.unwrap_or(u64::MAX);
+    PolicyReport {
+        denied,
+        review,
+        deleted_count,
+        allowed,
+    }
 }
 
 fn check_globs(patterns: &[String], output: &RepositorySnapshot) -> Vec<PolicyViolation> {

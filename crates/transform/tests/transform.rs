@@ -62,7 +62,9 @@ fn pipeline_matches_ok_yaml_example() {
     let mv = Move::new("packages/sdk", ".");
     let delete = Delete::new(["**/.internal", "**/secrets/**"]);
 
-    let report = Runner::new().run(snapshot(), &[&filter, &mv, &delete]).unwrap();
+    let report = Runner::new()
+        .run(snapshot(), &[&filter, &mv, &delete])
+        .unwrap();
     let out = &report.snapshot;
     assert_eq!(out.len(), 4);
     assert!(out.contains(&RepoPath::new("lib.rs").unwrap()));
@@ -167,8 +169,12 @@ fn runs_are_deterministic() {
     let mv = Move::new("packages/sdk", ".");
     let delete = Delete::new(["**/.internal", "**/secrets/**"]);
 
-    let first = Runner::new().run(snapshot(), &[&filter, &mv, &delete]).unwrap();
-    let second = Runner::new().run(snapshot(), &[&filter, &mv, &delete]).unwrap();
+    let first = Runner::new()
+        .run(snapshot(), &[&filter, &mv, &delete])
+        .unwrap();
+    let second = Runner::new()
+        .run(snapshot(), &[&filter, &mv, &delete])
+        .unwrap();
 
     assert_eq!(first.snapshot, second.snapshot);
     assert_eq!(first.events, second.events);

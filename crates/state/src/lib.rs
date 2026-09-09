@@ -170,8 +170,8 @@ mod tests {
     use reposync_core::CommitId;
 
     fn tmp_db() -> std::path::PathBuf {
-        let dir = tempfile::TempDir::new().unwrap().into_path();
-        dir.join("state.db")
+        let dir = tempfile::TempDir::new().unwrap();
+        dir.keep().join("state.db")
     }
 
     #[test]
@@ -218,4 +218,3 @@ mod tests {
         assert_eq!(mappings[1].source_commit, "s2");
     }
 }
-

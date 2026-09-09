@@ -20,7 +20,8 @@ pub fn diff(old: &RepositorySnapshot, new: &RepositorySnapshot) -> SnapshotDiff 
     for path in old_paths.intersection(&new_paths) {
         let old_entry = &old.files[path];
         let new_entry = &new.files[path];
-        if old_entry.content.hash() != new_entry.content.hash() || old_entry.mode != new_entry.mode {
+        if old_entry.content.hash() != new_entry.content.hash() || old_entry.mode != new_entry.mode
+        {
             modified.push(entry_from(path, Some(old_entry), Some(new_entry)));
         }
     }
@@ -65,7 +66,10 @@ pub fn diff(old: &RepositorySnapshot, new: &RepositorySnapshot) -> SnapshotDiff 
 }
 
 /// Group paths by their entry's content hash and mode.
-fn bucket(paths: &BTreeSet<RepoPath>, snapshot: &RepositorySnapshot) -> BTreeMap<(BlobId, FileMode), Vec<RepoPath>> {
+fn bucket(
+    paths: &BTreeSet<RepoPath>,
+    snapshot: &RepositorySnapshot,
+) -> BTreeMap<(BlobId, FileMode), Vec<RepoPath>> {
     let mut buckets: BTreeMap<(BlobId, FileMode), Vec<RepoPath>> = BTreeMap::new();
     for path in paths {
         let entry = &snapshot.files[path];

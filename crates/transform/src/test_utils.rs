@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use reposync_core::{Blob, FileEntry, RepoPath, RepositorySnapshot};
 
 /// Builds a snapshot from `(path, content bytes)` pairs for use in tests.

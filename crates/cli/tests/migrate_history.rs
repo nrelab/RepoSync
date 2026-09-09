@@ -46,7 +46,12 @@ fn migrate_history_replays_all_commits_and_is_idempotent() {
     );
     commit(
         &source_repo,
-        &[("a.txt", b"a"), ("b.txt", b"b"), ("c.txt", b"c"), ("d.txt", b"d")],
+        &[
+            ("a.txt", b"a"),
+            ("b.txt", b"b"),
+            ("c.txt", b"c"),
+            ("d.txt", b"d"),
+        ],
         "Dan",
     );
 
@@ -109,7 +114,12 @@ fn migrate_history_replays_all_commits_and_is_idempotent() {
 
     // Destination has 4 commits with a correct parent chain and authors.
     let dest_repo = GitRepo::open(&dest).unwrap();
-    let ids = dest_repo.history(None).unwrap().into_iter().rev().collect::<Vec<_>>();
+    let ids = dest_repo
+        .history(None)
+        .unwrap()
+        .into_iter()
+        .rev()
+        .collect::<Vec<_>>();
     assert_eq!(ids.len(), 4, "expected 4 commits in destination");
     for window in ids.windows(2) {
         let child = dest_repo.commit_info(&window[1]).unwrap();

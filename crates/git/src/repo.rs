@@ -43,7 +43,9 @@ pub struct GitRepo {
 
 impl std::fmt::Debug for GitRepo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("GitRepo").field("path", &self.path).finish_non_exhaustive()
+        f.debug_struct("GitRepo")
+            .field("path", &self.path)
+            .finish_non_exhaustive()
     }
 }
 
@@ -109,6 +111,38 @@ impl GitRepo {
         } else {
             Self::clone(url, into)
         }
+    }
+
+    /// Check out a branch, tag, or commit and make it the repository's active
+    /// revision. Branches remain attached so subsequent commits and pushes use
+    /// the requested branch; tags and commit ids are checked out detached.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `reference` cannot be resolved or the checkout
+    /// fails.
+    pub fn checkout_ref(&self, reference: &str) -> Result<(), Error> {
+        // An empty clone has no commit or branch ref yet. Attach HEAD to the
+        // configured branch now so the first generated commit lands there.
+        if self.head_commit_id()?.is_none() {
+            self.repo.set_head(&format!("refs/heads/{reference}"))?;
+            return Ok(());
+        }
+
+        let object = self.repo.revparse_single(reference)?;
+        let commit = object.peel_to_commit()?;
+
+        if let Ok(branch) = self.repo.find_branch(reference, git2::BranchType::Local) {
+            let branch_ref = branch.get().name().ok_or(Error::DetachedHead)?.to_owned();
+            self.repo.set_head(&branch_ref)?;
+        } else {
+            self.repo.set_head_detached(commit.id())?;
+        }
+
+        let mut builder = git2::build::CheckoutBuilder::new();
+        builder.force();
+        self.repo.checkout_tree(&object, Some(&mut builder))?;
+        Ok(())
     }
 
     /// The path the repository was opened or cloned at.
@@ -395,7 +429,15 @@ impl GitRepo {
         &self,
         spec: &CommitSpec,
     ) -> Result<(GitSignature<'static>, GitSignature<'static>), Error> {
-        let default = self.repo.signature()?;
+        // libgit2 reads the user's global config as a fallback when no repo-local
+        // identity is configured. CI and isolated test environments often do not
+        // have a ~/.gitconfig, so fall back to a built-in default instead of
+        // failing the migration.
+        let default = match self.repo.signature() {
+            Ok(signature) => signature,
+            Err(_) => GitSignature::now("RepoSync", "reposync@local")?,
+        };
+
         let author = match &spec.author {
             Some(author) => signature_from_model(author)?,
             None => default.clone(),

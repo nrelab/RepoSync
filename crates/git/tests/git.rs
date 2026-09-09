@@ -16,9 +16,7 @@ fn init_repo(dir: &Path) -> Repository {
 
 fn commit_worktree(repo: &Repository, message: &str) {
     let mut index = repo.index().unwrap();
-    index
-        .add_all(["*"], IndexAddOption::DEFAULT, None)
-        .unwrap();
+    index.add_all(["*"], IndexAddOption::DEFAULT, None).unwrap();
     index.write().unwrap();
     let tree_id = index.write_tree().unwrap();
     let tree = repo.find_tree(tree_id).unwrap();
@@ -28,8 +26,15 @@ fn commit_worktree(repo: &Repository, message: &str) {
         Err(_) => vec![],
     };
     let parent_refs: Vec<&Commit> = parents.iter().collect();
-    repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &parent_refs)
-        .unwrap();
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        message,
+        &tree,
+        &parent_refs,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -54,8 +59,7 @@ fn clone_reads_snapshot_of_working_tree() {
     commit_worktree(&repo, "initial commit");
 
     let dest = TempDir::new().unwrap();
-    let cloned =
-        GitRepo::clone(source.path().to_str().unwrap(), dest.path().join("repo")).unwrap();
+    let cloned = GitRepo::clone(source.path().to_str().unwrap(), dest.path().join("repo")).unwrap();
 
     let snapshot = cloned.head_snapshot().unwrap();
     assert_eq!(snapshot.len(), 2);
@@ -117,14 +121,16 @@ fn commits_form_a_chain() {
         RepoPath::new("a.txt").unwrap(),
         Blob::from_bytes(b"a"),
     ));
-    repo.write_commit(&first, &CommitSpec::new("first")).unwrap();
+    repo.write_commit(&first, &CommitSpec::new("first"))
+        .unwrap();
 
     let mut second = first.clone();
     second.insert(FileEntry::regular(
         RepoPath::new("b.txt").unwrap(),
         Blob::from_bytes(b"b"),
     ));
-    repo.write_commit(&second, &CommitSpec::new("second")).unwrap();
+    repo.write_commit(&second, &CommitSpec::new("second"))
+        .unwrap();
 
     let history = repo.history(None).unwrap();
     assert_eq!(history.len(), 2);
@@ -159,6 +165,37 @@ fn checkout_writes_snapshot_to_worktree() {
 }
 
 #[test]
+fn checkout_ref_selects_requested_branch() {
+    let dir = TempDir::new().unwrap();
+    let repo_path = dir.path().join("repo");
+    let raw = init_repo(&repo_path);
+    fs::write(repo_path.join("base.txt"), "base").unwrap();
+    commit_worktree(&raw, "base");
+
+    {
+        let head = raw.head().unwrap().peel_to_commit().unwrap();
+        raw.branch("release", &head, false).unwrap();
+    }
+    fs::write(repo_path.join("main-only.txt"), "main").unwrap();
+    commit_worktree(&raw, "main change");
+    drop(raw);
+
+    let repo = GitRepo::open(&repo_path).unwrap();
+    repo.checkout_ref("release").unwrap();
+
+    assert_eq!(repo.current_branch_name().unwrap(), "release");
+    assert!(repo
+        .head_snapshot()
+        .unwrap()
+        .contains(&RepoPath::new("base.txt").unwrap()));
+    assert!(!repo
+        .head_snapshot()
+        .unwrap()
+        .contains(&RepoPath::new("main-only.txt").unwrap()));
+    assert!(!repo_path.join("main-only.txt").exists());
+}
+
+#[test]
 fn push_and_fetch_share_commits() {
     let dir = TempDir::new().unwrap();
     let origin = dir.path().join("origin.git");
@@ -181,10 +218,7 @@ fn push_and_fetch_share_commits() {
     let b = GitRepo::clone(origin.to_str().unwrap(), dir.path().join("b")).unwrap();
     let b_snapshot = b.head_snapshot().unwrap();
     assert!(b_snapshot.contains(&RepoPath::new("hello.txt").unwrap()));
-    assert_eq!(
-        b_snapshot.metadata().head,
-        a.head_commit_id().unwrap()
-    );
+    assert_eq!(b_snapshot.metadata().head, a.head_commit_id().unwrap());
 
     let branch = a.current_branch_name().unwrap();
     let mut second = snapshot.clone();

@@ -3,16 +3,16 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
-use reposync_config::{ConfigFile, Source, Destination, TransformKind};
-use reposync_policy::check;
-use reposync_transform::{
-    Append, DependencyRewrite, Filter, ImportRewrite, Metadata, Move, Patch, Prepend,
-    RegexReplace, Rename, Replace, StripPrefix, Transformation, Copy, Delete,
-};
-use reposync_sync::Syncer;
-use reposync_git::{CommitSpec, GitRepo};
+use reposync_config::{ConfigFile, Destination, Source, TransformKind};
 use reposync_diff::diff;
+use reposync_git::{CommitSpec, GitRepo};
 use reposync_migration::{Error as MigrationError, SyncStrategy};
+use reposync_policy::check;
+use reposync_sync::Syncer;
+use reposync_transform::{
+    Append, Copy, Delete, DependencyRewrite, Filter, ImportRewrite, Metadata, Move, Patch, Prepend,
+    RegexReplace, Rename, Replace, StripPrefix, Transformation,
+};
 
 /// Programmable Git repository migration, synchronization, filtering, and
 /// transformation engine.
@@ -72,7 +72,11 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Command::Validate { config } => cmd_validate(&config),
         Command::Plan { config } => cmd_plan(&config),
-        Command::Migrate { config, state, history } => cmd_migrate(&config, &state, history),
+        Command::Migrate {
+            config,
+            state,
+            history,
+        } => cmd_migrate(&config, &state, history),
         Command::Diff { config } => cmd_diff(&config),
         Command::Sync { config, state } => cmd_sync(&config, &state),
     }
@@ -132,9 +136,10 @@ fn cmd_plan(path: &std::path::Path) -> anyhow::Result<()> {
     );
 
     let source = open_source(&config)?;
+    let destination = open_dest(&config)?;
     let transforms = build_transforms(&config)?;
     let transform_refs: Vec<&dyn Transformation> = transforms.iter().map(|b| &**b).collect();
-    let syncer = Syncer::new(&source, &source);
+    let syncer = Syncer::new(&source, &destination);
     let report = syncer.plan(&transform_refs)?;
 
     let policy = config.policy.unwrap_or_default();
@@ -142,10 +147,18 @@ fn cmd_plan(path: &std::path::Path) -> anyhow::Result<()> {
 
     if !policy_report.is_allowed() {
         for v in &policy_report.denied {
-            eprintln!("error: policy denied path `{}` (pattern: `{}`)", v.path.as_str(), v.pattern);
+            eprintln!(
+                "error: policy denied path `{}` (pattern: `{}`)",
+                v.path.as_str(),
+                v.pattern
+            );
         }
         for v in &policy_report.review {
-            eprintln!("error: policy requires review for `{}` (pattern: `{}`)", v.path.as_str(), v.pattern);
+            eprintln!(
+                "error: policy requires review for `{}` (pattern: `{}`)",
+                v.path.as_str(),
+                v.pattern
+            );
         }
         if policy_report.deleted_count > policy.max_deleted_files.unwrap_or(u64::MAX) {
             eprintln!(
@@ -154,11 +167,22 @@ fn cmd_plan(path: &std::path::Path) -> anyhow::Result<()> {
                 policy.max_deleted_files.unwrap_or(0)
             );
         }
-        anyhow::bail!("policy check failed: {} violation(s)", policy_report.denied.len() + policy_report.review.len());
+        anyhow::bail!(
+            "policy check failed: {} violation(s)",
+            policy_report.denied.len() + policy_report.review.len()
+        );
     }
 
-    println!("Transforms: {}", transform_refs.iter().map(|t| t.name()).collect::<Vec<_>>().join(", "));
-    println!("Changes: {} added, {} removed, {} modified, {} renamed",
+    println!(
+        "Transforms: {}",
+        transform_refs
+            .iter()
+            .map(|t| t.name())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    println!(
+        "Changes: {} added, {} removed, {} modified, {} renamed",
         report.diff.added.len(),
         report.diff.removed.len(),
         report.diff.modified.len(),
@@ -226,7 +250,11 @@ fn cmd_migrate(
     let policy_report = check(&policy, &plan.diff, &plan.output);
     if !policy_report.is_allowed() {
         for v in &policy_report.denied {
-            eprintln!("error: policy denied path `{}` (pattern: `{}`)", v.path.as_str(), v.pattern);
+            eprintln!(
+                "error: policy denied path `{}` (pattern: `{}`)",
+                v.path.as_str(),
+                v.pattern
+            );
         }
         anyhow::bail!("policy check failed");
     }
@@ -280,7 +308,11 @@ fn cmd_migrate_history(
     let policy_report = check(&policy, &plan.diff, &plan.output);
     if !policy_report.is_allowed() {
         for v in &policy_report.denied {
-            eprintln!("error: policy denied path `{}` (pattern: `{}`)", v.path.as_str(), v.pattern);
+            eprintln!(
+                "error: policy denied path `{}` (pattern: `{}`)",
+                v.path.as_str(),
+                v.pattern
+            );
         }
         anyhow::bail!("policy check failed");
     }
@@ -392,7 +424,13 @@ fn cmd_sync(path: &std::path::Path, state_path: &std::path::Path) -> anyhow::Res
     let state = reposync_state::State::open(state_path)
         .with_context(|| format!("failed to open state database at {}", state_path.display()))?;
 
-    match reposync_migration::sync(&internal, &public, &transform_refs, &state, SyncStrategy::Fail) {
+    match reposync_migration::sync(
+        &internal,
+        &public,
+        &transform_refs,
+        &state,
+        SyncStrategy::Fail,
+    ) {
         Ok(report) => {
             let internal_url = match &config.source {
                 Source::Git { url, .. } => url.clone(),
@@ -423,7 +461,10 @@ fn cmd_sync(path: &std::path::Path, state_path: &std::path::Path) -> anyhow::Res
                     conflict.public_commit, conflict.message
                 );
             }
-            anyhow::bail!("sync aborted: {} conflict(s) detected", report.conflicts.len());
+            anyhow::bail!(
+                "sync aborted: {} conflict(s) detected",
+                report.conflicts.len()
+            );
         }
         Err(error) => Err(error.into()),
     }
@@ -437,15 +478,26 @@ fn open_source(config: &ConfigFile) -> anyhow::Result<GitRepo> {
     // For the M7 MVP we work with local paths or git URLs. If the source is a
     // URL we clone it into a temp dir; otherwise we open the existing path.
     match &config.source {
-        Source::Git { url, .. } => GitRepo::open_or_clone(url, temp_source_path())
-            .with_context(|| format!("failed to open source repository at {url}")),
+        Source::Git { url, ref_name } => {
+            let repo = GitRepo::open_or_clone(url, temp_source_path())
+                .with_context(|| format!("failed to open source repository at {url}"))?;
+            repo.checkout_ref(ref_name)
+                .with_context(|| format!("failed to check out source ref `{ref_name}` in {url}"))?;
+            Ok(repo)
+        }
     }
 }
 
 fn open_dest(config: &ConfigFile) -> anyhow::Result<GitRepo> {
     match &config.destination {
-        Destination::Git { url, .. } => GitRepo::clone(url, temp_dest_path())
-            .with_context(|| format!("failed to clone destination repository at {url}")),
+        Destination::Git { url, branch } => {
+            let repo = GitRepo::clone(url, temp_dest_path())
+                .with_context(|| format!("failed to clone destination repository at {url}"))?;
+            repo.checkout_ref(branch).with_context(|| {
+                format!("failed to check out destination branch `{branch}` in {url}")
+            })?;
+            Ok(repo)
+        }
     }
 }
 

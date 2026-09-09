@@ -99,10 +99,14 @@ impl Transformation for Rename {
                 event: TransformEvent::Renamed { from, to },
             });
         }
-        let entry = ctx.snapshot.get(&from).cloned().ok_or_else(|| Error::Transform {
-            name: "rename".to_owned(),
-            message: format!("no file at `{from}`"),
-        })?;
+        let entry = ctx
+            .snapshot
+            .get(&from)
+            .cloned()
+            .ok_or_else(|| Error::Transform {
+                name: "rename".to_owned(),
+                message: format!("no file at `{from}`"),
+            })?;
         if ctx.snapshot.contains(&to) {
             return Err(Error::Transform {
                 name: "rename".to_owned(),

@@ -19,7 +19,8 @@ fn seed(repo: &GitRepo, path: &str, content: &[u8]) {
         RepoPath::new(path).unwrap(),
         Blob::from_bytes(content),
     ));
-    repo.write_commit(&snapshot, &CommitSpec::new("seed")).unwrap();
+    repo.write_commit(&snapshot, &CommitSpec::new("seed"))
+        .unwrap();
 }
 
 #[test]

@@ -164,7 +164,12 @@ mod tests {
         );
         commit(
             &source,
-            &[("a.txt", b"a"), ("b.txt", b"b"), ("c.txt", b"c"), ("d.txt", b"d")],
+            &[
+                ("a.txt", b"a"),
+                ("b.txt", b"b"),
+                ("c.txt", b"c"),
+                ("d.txt", b"d"),
+            ],
             "Dan",
         );
 
@@ -213,7 +218,8 @@ mod tests {
         let transforms: Vec<Box<dyn Transformation>> = vec![Box::new(Filter::new(["**"]))];
         let transform_refs: Vec<&dyn Transformation> = transforms.iter().map(|b| &**b).collect();
 
-        let first = replay_history(&source, &dest, &transform_refs, Some(&state), None, None).unwrap();
+        let first =
+            replay_history(&source, &dest, &transform_refs, Some(&state), None, None).unwrap();
         assert_eq!(first.commits_replayed, 2);
 
         // A third commit arrives in the source.
@@ -222,7 +228,8 @@ mod tests {
             &[("a.txt", b"a"), ("b.txt", b"b"), ("c.txt", b"c")],
             "Carol",
         );
-        let second = replay_history(&source, &dest, &transform_refs, Some(&state), None, None).unwrap();
+        let second =
+            replay_history(&source, &dest, &transform_refs, Some(&state), None, None).unwrap();
         assert_eq!(second.commits_replayed, 1);
         assert_eq!(second.commits_skipped, 2);
 
@@ -246,7 +253,10 @@ mod tests {
         let transform_refs: Vec<&dyn Transformation> = transforms.iter().map(|b| &**b).collect();
 
         let mut author_map = BTreeMap::new();
-        author_map.insert(original_email.clone(), "alice@public.example.com".to_owned());
+        author_map.insert(
+            original_email.clone(),
+            "alice@public.example.com".to_owned(),
+        );
 
         let report = replay_history(
             &source,
@@ -269,7 +279,9 @@ mod tests {
             dest_info.message
         );
         assert!(
-            dest_info.message.contains(&format!("RepoSync-Generated: {source_head}")),
+            dest_info
+                .message
+                .contains(&format!("RepoSync-Generated: {source_head}")),
             "expected generated marker, got: {}",
             dest_info.message
         );

@@ -38,11 +38,7 @@ fn sync_twice_recognizes_generated_and_avoids_loops() {
     // Internal source of truth with two commits.
     let internal_repo = GitRepo::init_bare(&internal).unwrap();
     commit(&internal_repo, &[("a.txt", b"a")], "Alice");
-    commit(
-        &internal_repo,
-        &[("a.txt", b"a"), ("b.txt", b"b")],
-        "Bob",
-    );
+    commit(&internal_repo, &[("a.txt", b"a"), ("b.txt", b"b")], "Bob");
 
     // Fresh public mirror.
     GitRepo::init_bare(&public).unwrap();
