@@ -13,6 +13,7 @@ use reposync_transform::{
     Append, Copy, Delete, DependencyRewrite, Filter, ImportRewrite, Metadata, Move, Patch, Prepend,
     RegexReplace, Rename, Replace, StripPrefix, Transformation,
 };
+use sha2::{Digest, Sha256};
 
 /// Programmable Git repository migration, synchronization, filtering, and
 /// transformation engine.
@@ -221,7 +222,7 @@ fn cmd_migrate(
         return Ok(());
     };
 
-    let state = reposync_state::State::open(state_path)
+    let state = reposync_state::State::open_for_pipeline(state_path, pipeline_id(&config)?)
         .with_context(|| format!("failed to open state database at {}", state_path.display()))?;
 
     let transforms = build_transforms(&config)?;
@@ -421,7 +422,7 @@ fn cmd_sync(path: &std::path::Path, state_path: &std::path::Path) -> anyhow::Res
     let public = open_dest(&config)?;
     let transforms = build_transforms(&config)?;
     let transform_refs: Vec<&dyn Transformation> = transforms.iter().map(|b| &**b).collect();
-    let state = reposync_state::State::open(state_path)
+    let state = reposync_state::State::open_for_pipeline(state_path, pipeline_id(&config)?)
         .with_context(|| format!("failed to open state database at {}", state_path.display()))?;
 
     match reposync_migration::sync(
@@ -488,6 +489,11 @@ fn open_source(config: &ConfigFile) -> anyhow::Result<GitRepo> {
     }
 }
 
+fn pipeline_id(config: &ConfigFile) -> anyhow::Result<String> {
+    let bytes = serde_json::to_vec(config).context("failed to serialize pipeline identity")?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
+}
+
 fn open_dest(config: &ConfigFile) -> anyhow::Result<GitRepo> {
     match &config.destination {
         Destination::Git { url, branch } => {
@@ -503,11 +509,18 @@ fn open_dest(config: &ConfigFile) -> anyhow::Result<GitRepo> {
 
 /// Use a per-run temp dir so each command invocation is isolated.
 fn temp_source_path() -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("reposync-source-{}", std::process::id()))
+    unique_temp_path("reposync-source")
 }
 
 fn temp_dest_path() -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("reposync-dest-{}", std::process::id()))
+    unique_temp_path("reposync-dest")
+}
+
+fn unique_temp_path(prefix: &str) -> std::path::PathBuf {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_nanos());
+    std::env::temp_dir().join(format!("{prefix}-{}-{nonce}", std::process::id()))
 }
 
 /// Extract the history-only transforms (`author_mapping`, `commit_message`)

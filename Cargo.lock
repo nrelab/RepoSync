@@ -1309,6 +1309,8 @@ dependencies = [
  "reposync-state",
  "reposync-sync",
  "reposync-transform",
+ "serde_json",
+ "sha2",
  "tempfile",
 ]
 

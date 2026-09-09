@@ -13,9 +13,11 @@
 //! ------
 //! ```text
 //! commit_mapping(
-//!     source_commit      TEXT PRIMARY KEY,
+//!     pipeline_id        TEXT NOT NULL,
+//!     source_commit      TEXT NOT NULL,
 //!     destination_commit TEXT NOT NULL,
-//!     timestamp          INTEGER NOT NULL
+//!     timestamp          INTEGER NOT NULL,
+//!     PRIMARY KEY (pipeline_id, source_commit)
 //! )
 //! ```
 
@@ -41,6 +43,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// A single source→destination commit mapping.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitMapping {
+    /// Stable identity of the pipeline that produced this mapping.
+    pub pipeline_id: String,
     /// The source commit id this row was produced from.
     pub source_commit: String,
     /// The destination commit id the source was exported to.
@@ -56,6 +60,7 @@ pub struct CommitMapping {
 #[derive(Debug)]
 pub struct State {
     conn: rusqlite::Connection,
+    pipeline_id: String,
 }
 
 impl State {
@@ -66,20 +71,27 @@ impl State {
     /// Returns an error if the directory cannot be created or SQLite fails to
     /// open or initialize the schema.
     pub fn open(path: &Path) -> Result<Self> {
+        Self::open_for_pipeline(path, "")
+    }
+
+    /// Open state scoped to one pipeline identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the database directory cannot be created, the
+    /// schema cannot be initialized, or SQLite cannot open the database.
+    pub fn open_for_pipeline(path: &Path, pipeline_id: impl Into<String>) -> Result<Self> {
         if let Some(parent) = path.parent() {
             if !parent.as_os_str().is_empty() {
                 std::fs::create_dir_all(parent)?;
             }
         }
         let conn = rusqlite::Connection::open(path)?;
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS commit_mapping (
-                source_commit      TEXT PRIMARY KEY,
-                destination_commit TEXT NOT NULL,
-                timestamp          INTEGER NOT NULL
-            )",
-        )?;
-        Ok(Self { conn })
+        initialize_schema(&conn)?;
+        Ok(Self {
+            conn,
+            pipeline_id: pipeline_id.into(),
+        })
     }
 
     /// Record (or update) the destination commit produced from `source`.
@@ -93,9 +105,15 @@ impl State {
     pub fn record(&self, source: &CommitId, destination: &CommitId) -> Result<()> {
         let timestamp = now();
         self.conn.execute(
-            "INSERT OR REPLACE INTO commit_mapping (source_commit, destination_commit, timestamp)
-             VALUES (?1, ?2, ?3)",
-            rusqlite::params![source.as_str(), destination.as_str(), timestamp],
+            "INSERT OR REPLACE INTO commit_mapping
+             (pipeline_id, source_commit, destination_commit, timestamp)
+             VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![
+                self.pipeline_id,
+                source.as_str(),
+                destination.as_str(),
+                timestamp
+            ],
         )?;
         Ok(())
     }
@@ -107,8 +125,9 @@ impl State {
     /// Returns an error if the query fails.
     pub fn has_source(&self, source: &CommitId) -> Result<bool> {
         let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM commit_mapping WHERE source_commit = ?1",
-            rusqlite::params![source.as_str()],
+            "SELECT COUNT(*) FROM commit_mapping
+             WHERE pipeline_id = ?1 AND source_commit = ?2",
+            rusqlite::params![self.pipeline_id, source.as_str()],
             |row| row.get(0),
         )?;
         Ok(count > 0)
@@ -121,8 +140,9 @@ impl State {
     /// Returns an error if the query fails for a reason other than "no row".
     pub fn destination_for(&self, source: &CommitId) -> Result<Option<String>> {
         match self.conn.query_row(
-            "SELECT destination_commit FROM commit_mapping WHERE source_commit = ?1",
-            rusqlite::params![source.as_str()],
+            "SELECT destination_commit FROM commit_mapping
+             WHERE pipeline_id = ?1 AND source_commit = ?2",
+            rusqlite::params![self.pipeline_id, source.as_str()],
             |row| row.get::<_, String>(0),
         ) {
             Ok(value) => Ok(Some(value)),
@@ -137,23 +157,85 @@ impl State {
     ///
     /// Returns an error if the query fails.
     pub fn mappings(&self) -> Result<Vec<CommitMapping>> {
-        let mut statement = self.conn.prepare(
-            "SELECT source_commit, destination_commit, timestamp
-             FROM commit_mapping ORDER BY timestamp ASC",
-        )?;
-        let rows = statement.query_map([], |row| {
-            Ok(CommitMapping {
-                source_commit: row.get(0)?,
-                destination_commit: row.get(1)?,
-                timestamp: row.get(2)?,
-            })
-        })?;
+        let mut statement = if self.pipeline_id.is_empty() {
+            self.conn.prepare(
+                "SELECT pipeline_id, source_commit, destination_commit, timestamp
+                 FROM commit_mapping ORDER BY timestamp ASC",
+            )?
+        } else {
+            self.conn.prepare(
+                "SELECT pipeline_id, source_commit, destination_commit, timestamp
+                 FROM commit_mapping WHERE pipeline_id = ?1 ORDER BY timestamp ASC",
+            )?
+        };
+        let rows = if self.pipeline_id.is_empty() {
+            statement.query_map([], mapping_from_row)?
+        } else {
+            statement.query_map(rusqlite::params![self.pipeline_id], mapping_from_row)?
+        };
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
         }
         Ok(out)
     }
+}
+
+fn mapping_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<CommitMapping> {
+    Ok(CommitMapping {
+        pipeline_id: row.get(0)?,
+        source_commit: row.get(1)?,
+        destination_commit: row.get(2)?,
+        timestamp: row.get(3)?,
+    })
+}
+
+fn initialize_schema(conn: &rusqlite::Connection) -> Result<()> {
+    let table_exists: bool = conn.query_row(
+        "SELECT EXISTS(
+            SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'commit_mapping'
+        )",
+        [],
+        |row| row.get(0),
+    )?;
+
+    if table_exists {
+        let has_pipeline_id = conn
+            .prepare("PRAGMA table_info(commit_mapping)")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .collect::<std::result::Result<Vec<_>, _>>()?
+            .iter()
+            .any(|name| name == "pipeline_id");
+
+        if !has_pipeline_id {
+            conn.execute_batch(
+                "ALTER TABLE commit_mapping RENAME TO commit_mapping_legacy;
+                 CREATE TABLE commit_mapping (
+                     pipeline_id        TEXT NOT NULL,
+                     source_commit      TEXT NOT NULL,
+                     destination_commit TEXT NOT NULL,
+                     timestamp          INTEGER NOT NULL,
+                     PRIMARY KEY (pipeline_id, source_commit)
+                 );
+                 INSERT INTO commit_mapping
+                     (pipeline_id, source_commit, destination_commit, timestamp)
+                 SELECT '', source_commit, destination_commit, timestamp
+                 FROM commit_mapping_legacy;
+                 DROP TABLE commit_mapping_legacy;",
+            )?;
+        }
+    } else {
+        conn.execute_batch(
+            "CREATE TABLE commit_mapping (
+                 pipeline_id        TEXT NOT NULL,
+                 source_commit      TEXT NOT NULL,
+                 destination_commit TEXT NOT NULL,
+                 timestamp          INTEGER NOT NULL,
+                 PRIMARY KEY (pipeline_id, source_commit)
+             )",
+        )?;
+    }
+    Ok(())
 }
 
 /// Current time as Unix epoch seconds.
@@ -199,6 +281,20 @@ mod tests {
         let mappings = state.mappings().unwrap();
         assert_eq!(mappings.len(), 1, "expected exactly one row per source");
         assert_eq!(mappings[0].destination_commit, "dst2");
+    }
+
+    #[test]
+    fn pipelines_do_not_share_mappings() {
+        let path = tmp_db();
+        let first = State::open_for_pipeline(&path, "first").unwrap();
+        let second = State::open_for_pipeline(&path, "second").unwrap();
+        let source = CommitId::new("same-source").unwrap();
+        let first_dest = CommitId::new("first-dest").unwrap();
+
+        first.record(&source, &first_dest).unwrap();
+        assert!(first.has_source(&source).unwrap());
+        assert!(!second.has_source(&source).unwrap());
+        assert!(second.destination_for(&source).unwrap().is_none());
     }
 
     #[test]
