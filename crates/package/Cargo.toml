@@ -1,0 +1,28 @@
+[package]
+name = "reposync-package"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Package source materialization for RepoSync: registry fetching, caching and extraction."
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+dirs.workspace = true
+flate2.workspace = true
+fs2.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+# httpmock = "0.7"  # deferred for integration tests — add when wiremock tests land

@@ -9,6 +9,7 @@ members = [
     "crates/git",
     "crates/metadata",
     "crates/migration",
+    "crates/package",
     "crates/policy",
     "crates/state",
     "crates/sync",
@@ -36,8 +37,14 @@ module_name_repetitions = "allow"
 [workspace.dependencies]
 anyhow = "1"
 base64 = "0.22"
+dirs = "6"
+flate2 = "1"
+fs2 = "0.4"
 regex = "1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls-webpki-roots"] }
+tar = "0.4"
 wasmtime = "43"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 clap = { version = "4", features = ["derive"] }
 git2 = "0.19"
 rusqlite = { version = "0.32", features = ["bundled"] }

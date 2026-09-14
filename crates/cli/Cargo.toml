@@ -25,6 +25,7 @@ reposync-git = { path = "../git" }
 reposync-migration = { path = "../migration" }
 reposync-policy = { path = "../policy" }
 reposync-state = { path = "../state" }
+reposync-package = { path = "../package" }
 reposync-sync = { path = "../sync" }
 reposync-transform = { path = "../transform" }
 

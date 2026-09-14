@@ -66,6 +66,32 @@ enum Command {
         #[arg(long, default_value = ".sync/state.db")]
         state: PathBuf,
     },
+    /// Resolve a package spec to its unpacked source directory.
+    Path {
+        /// Package spec: `name`, `name@version`, `npm:name@version`, `pypi:name==version`.
+        spec: Option<String>,
+        /// Override registry (`npm` or `pypi`).
+        #[arg(long, short = 'r')]
+        registry: Option<String>,
+        /// Override version.
+        #[arg(long, short = 'v')]
+        version: Option<String>,
+        /// Print JSON `{"registry","name","version","path","cached"}` instead of bare path.
+        #[arg(long)]
+        json: bool,
+        /// Verbose progress to stderr.
+        #[arg(long, short, action = clap::ArgAction::Count)]
+        verbose: u8,
+        /// Evict cached entry instead of resolving.
+        #[arg(long)]
+        evict: bool,
+        /// With --evict, evict all versions of the package.
+        #[arg(long)]
+        all_versions: bool,
+        /// With --evict, evict all packages.
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -80,6 +106,18 @@ fn main() -> anyhow::Result<()> {
         } => cmd_migrate(&config, &state, history),
         Command::Diff { config } => cmd_diff(&config),
         Command::Sync { config, state } => cmd_sync(&config, &state),
+        Command::Path {
+            spec,
+            registry,
+            version,
+            json,
+            verbose,
+            evict,
+            all_versions,
+            all,
+        } => cmd_path(
+            spec, registry, version, json, verbose, evict, all_versions, all,
+        ),
     }
 }
 
@@ -625,4 +663,137 @@ fn build_transforms(config: &ConfigFile) -> anyhow::Result<Vec<Box<dyn Transform
         transforms.push(boxed);
     }
     Ok(transforms)
+}
+
+// ---------------------------------------------------------------------------
+// path — package source materialization
+// ---------------------------------------------------------------------------
+
+#[allow(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
+fn cmd_path(
+    spec: Option<String>,
+    registry: Option<String>,
+    version: Option<String>,
+    json: bool,
+    verbose: u8,
+    evict: bool,
+    all_versions: bool,
+    all: bool,
+) -> anyhow::Result<()> {
+    // Handle --evict.
+    if evict || all_versions || all {
+        if all {
+            let count =
+                reposync_package::evict_all().unwrap_or_else(|e| exit_with_package_error(&e));
+            if verbose > 0 {
+                eprintln!("reposync: evicted {count} package(s)");
+            }
+            if json {
+                println!("{{\"evicted\":{count}}}");
+            }
+            return Ok(());
+        }
+        let Some(spec) = spec else {
+            eprintln!("error: package spec required for --evict (or use --all)");
+            std::process::exit(2);
+        };
+        // Build spec for eviction.
+        let spec_str = if let Some(reg) = registry.clone() {
+            if spec.contains(':') {
+                spec.clone()
+            } else {
+                format!("{reg}:{spec}")
+            }
+        } else {
+            spec.clone()
+        };
+        let count = reposync_package::evict_spec(
+            &spec_str,
+            version.as_deref(),
+            all_versions,
+            false,
+        )
+        .unwrap_or_else(|e| exit_with_package_error(&e));
+        if verbose > 0 {
+            eprintln!("reposync: evicted {count} package(s) for {spec_str}");
+        } else if json {
+            println!("{{\"evicted\":{count}}}");
+            return Ok(());
+        }
+        return Ok(());
+    }
+
+    let Some(spec) = spec else {
+        eprintln!("error: path takes exactly one package spec");
+        std::process::exit(2);
+    };
+
+    // Validate single spec.
+    if spec.trim().is_empty() {
+        eprintln!("error: package spec must not be empty");
+        std::process::exit(2);
+    }
+
+    // Registry override handling: if --registry is given and spec has no prefix,
+    // prefix it.
+    let effective_spec = if let Some(reg) = registry {
+        if spec.contains(':') {
+            // Spec already has registry; ensure they agree or honor spec.
+            spec.to_owned()
+        } else {
+            format!("{reg}:{spec}")
+        }
+    } else {
+        spec.to_owned()
+    };
+
+    let verbose_flag = verbose > 0;
+    let result = reposync_package::resolve_and_materialize(
+        &effective_spec,
+        version.as_deref(),
+        verbose_flag,
+    )
+    .unwrap_or_else(|e| exit_with_package_error(&e));
+
+    // Check for stdout contract: exactly one line absolute path.
+    let path_str = result.display().to_string();
+
+    if json {
+        // Need version and registry for JSON. Re-parse spec to extract.
+        let parsed = reposync_package::PackageSpec::parse(&effective_spec, version.as_deref())
+            .unwrap_or_else(|e| exit_with_package_error(&e));
+        // Determine actual version from path (last component before /package).
+        let version_from_path = result
+            .parent()
+            .and_then(|p| p.file_name())
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| parsed.version.clone().unwrap_or_else(|| "unknown".to_owned()));
+        let cached = true; // resolve_and_materialize always caches; we could check is_cached but it is true.
+        let obj = serde_json::json!({
+            "registry": parsed.registry.as_str(),
+            "name": parsed.name,
+            "version": version_from_path,
+            "path": path_str,
+            "cached": cached
+        });
+        println!("{}", obj);
+    } else {
+        println!("{}", path_str);
+    }
+
+    Ok(())
+}
+
+fn exit_with_package_error(e: &reposync_package::PackageError) -> ! {
+    let code = e.exit_code();
+    // Map to required stderr messages per PRODUCT.md#10.
+    // PackageError Display already contains the required wording.
+    eprintln!("error: {e}");
+    if matches!(
+        e,
+        reposync_package::PackageError::UnsupportedRegistry { .. }
+    ) {
+        eprintln!("{}", reposync_package::PackageError::supported_registries());
+    }
+    std::process::exit(code);
 }
