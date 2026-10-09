@@ -74,7 +74,7 @@ enum Command {
         #[arg(long, short = 'r')]
         registry: Option<String>,
         /// Override version.
-        #[arg(long, short = 'v')]
+        #[arg(long)]
         version: Option<String>,
         /// Print JSON `{"registry","name","version","path","cached"}` instead of bare path.
         #[arg(long)]
@@ -116,7 +116,14 @@ fn main() -> anyhow::Result<()> {
             all_versions,
             all,
         } => cmd_path(
-            spec, registry, version, json, verbose, evict, all_versions, all,
+            spec,
+            registry,
+            version,
+            json,
+            verbose,
+            evict,
+            all_versions,
+            all,
         ),
     }
 }
@@ -707,13 +714,9 @@ fn cmd_path(
         } else {
             spec.clone()
         };
-        let count = reposync_package::evict_spec(
-            &spec_str,
-            version.as_deref(),
-            all_versions,
-            false,
-        )
-        .unwrap_or_else(|e| exit_with_package_error(&e));
+        let count =
+            reposync_package::evict_spec(&spec_str, version.as_deref(), all_versions, false)
+                .unwrap_or_else(|e| exit_with_package_error(&e));
         if verbose > 0 {
             eprintln!("reposync: evicted {count} package(s) for {spec_str}");
         } else if json {
@@ -767,7 +770,12 @@ fn cmd_path(
             .parent()
             .and_then(|p| p.file_name())
             .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_else(|| parsed.version.clone().unwrap_or_else(|| "unknown".to_owned()));
+            .unwrap_or_else(|| {
+                parsed
+                    .version
+                    .clone()
+                    .unwrap_or_else(|| "unknown".to_owned())
+            });
         let cached = true; // resolve_and_materialize always caches; we could check is_cached but it is true.
         let obj = serde_json::json!({
             "registry": parsed.registry.as_str(),

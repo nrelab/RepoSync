@@ -57,18 +57,22 @@ fn extract_tar_gz(
             version: version.to_owned(),
             cause: e.to_string(),
         })?;
-        let entry_path = entry.path().map_err(|e| PackageError::Extraction {
-            name: package_name.to_owned(),
-            version: version.to_owned(),
-            cause: e.to_string(),
-        })?.into_owned();
+        let entry_path = entry
+            .path()
+            .map_err(|e| PackageError::Extraction {
+                name: package_name.to_owned(),
+                version: version.to_owned(),
+                cause: e.to_string(),
+            })?
+            .into_owned();
 
         // Sandbox: reject absolute, .., and ensure within dest.
-        let sanitized = sanitize_entry_path(&entry_path).map_err(|cause| PackageError::Extraction {
-            name: package_name.to_owned(),
-            version: version.to_owned(),
-            cause,
-        })?;
+        let sanitized =
+            sanitize_entry_path(&entry_path).map_err(|cause| PackageError::Extraction {
+                name: package_name.to_owned(),
+                version: version.to_owned(),
+                cause,
+            })?;
 
         // Strip top-level `package/` prefix that npm tarballs use.
         let relative = strip_npm_package_prefix(&sanitized);
@@ -111,9 +115,11 @@ fn extract_tar_gz(
                 #[cfg(unix)]
                 {
                     let _ = fs::remove_file(&dest_path);
-                    std::os::unix::fs::symlink(&link, &dest_path).map_err(|e| PackageError::Io {
-                        path: dest_path.display().to_string(),
-                        cause: e.to_string(),
+                    std::os::unix::fs::symlink(&link, &dest_path).map_err(|e| {
+                        PackageError::Io {
+                            path: dest_path.display().to_string(),
+                            cause: e.to_string(),
+                        }
                     })?;
                 }
             }
@@ -175,11 +181,12 @@ fn extract_zip(
             cause: e.to_string(),
         })?;
         let entry_path = Path::new(entry.name()).to_path_buf();
-        let sanitized = sanitize_entry_path(&entry_path).map_err(|cause| PackageError::Extraction {
-            name: package_name.to_owned(),
-            version: version.to_owned(),
-            cause,
-        })?;
+        let sanitized =
+            sanitize_entry_path(&entry_path).map_err(|cause| PackageError::Extraction {
+                name: package_name.to_owned(),
+                version: version.to_owned(),
+                cause,
+            })?;
         let dest_path = dest.join(&sanitized);
         if !is_within(dest, &dest_path) {
             return Err(PackageError::Extraction {
@@ -252,12 +259,16 @@ fn is_within(base: &Path, candidate: &Path) -> bool {
     let base = if base.is_absolute() {
         base.to_path_buf()
     } else {
-        std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join(base)
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(base)
     };
     let cand = if candidate.is_absolute() {
         candidate.to_path_buf()
     } else {
-        std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join(candidate)
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(candidate)
     };
     cand.starts_with(&base)
 }

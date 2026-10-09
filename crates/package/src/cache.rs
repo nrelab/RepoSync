@@ -43,10 +43,7 @@ fn complete_marker(package_dir: &Path) -> PathBuf {
 }
 
 fn lock_path(package_dir: &Path) -> PathBuf {
-    package_dir
-        .parent()
-        .unwrap_or(package_dir)
-        .join(".lock")
+    package_dir.parent().unwrap_or(package_dir).join(".lock")
 }
 
 /// Check if a cached entry is complete and valid.
@@ -210,10 +207,13 @@ pub fn evict_all_versions(spec: &PackageSpec) -> Result<usize, PackageError> {
             path: base.display().to_string(),
             cause: e.to_string(),
         })?;
-        if entry.file_type().map_err(|e| PackageError::Io {
-            path: entry.path().display().to_string(),
-            cause: e.to_string(),
-        })?.is_dir()
+        if entry
+            .file_type()
+            .map_err(|e| PackageError::Io {
+                path: entry.path().display().to_string(),
+                cause: e.to_string(),
+            })?
+            .is_dir()
         {
             std::fs::remove_dir_all(entry.path()).map_err(|e| map_io_err(&entry.path(), e))?;
             count += 1;
@@ -236,24 +236,32 @@ pub fn evict_all() -> Result<usize, PackageError> {
             path: base.display().to_string(),
             cause: e.to_string(),
         })?;
-        if !reg_entry.file_type().map_err(|e| PackageError::Io {
-            path: reg_entry.path().display().to_string(),
-            cause: e.to_string(),
-        })?.is_dir()
+        if !reg_entry
+            .file_type()
+            .map_err(|e| PackageError::Io {
+                path: reg_entry.path().display().to_string(),
+                cause: e.to_string(),
+            })?
+            .is_dir()
         {
             continue;
         }
-        for name_entry in std::fs::read_dir(reg_entry.path()).map_err(|e| map_io_err(&reg_entry.path(), e))? {
+        for name_entry in
+            std::fs::read_dir(reg_entry.path()).map_err(|e| map_io_err(&reg_entry.path(), e))?
+        {
             let name_entry = name_entry.map_err(|e| PackageError::Io {
                 path: reg_entry.path().display().to_string(),
                 cause: e.to_string(),
             })?;
-            for ver_entry in std::fs::read_dir(name_entry.path()).map_err(|e| map_io_err(&name_entry.path(), e))? {
+            for ver_entry in std::fs::read_dir(name_entry.path())
+                .map_err(|e| map_io_err(&name_entry.path(), e))?
+            {
                 let ver_entry = ver_entry.map_err(|e| PackageError::Io {
                     path: name_entry.path().display().to_string(),
                     cause: e.to_string(),
                 })?;
-                std::fs::remove_dir_all(ver_entry.path()).map_err(|e| map_io_err(&ver_entry.path(), e))?;
+                std::fs::remove_dir_all(ver_entry.path())
+                    .map_err(|e| map_io_err(&ver_entry.path(), e))?;
                 count += 1;
             }
             let _ = std::fs::remove_dir(name_entry.path());

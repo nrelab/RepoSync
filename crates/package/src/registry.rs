@@ -127,10 +127,12 @@ impl RegistryClient for NpmClient {
         let version = if let Some(v) = &spec.version {
             v.clone()
         } else if let Some(tags) = &meta.dist_tags {
-            tags.get("latest").cloned().ok_or_else(|| PackageError::Network {
-                url: url.clone(),
-                cause: "no dist-tag 'latest'".to_owned(),
-            })?
+            tags.get("latest")
+                .cloned()
+                .ok_or_else(|| PackageError::Network {
+                    url: url.clone(),
+                    cause: "no dist-tag 'latest'".to_owned(),
+                })?
         } else if let Some(v) = &meta.version {
             v.clone()
         } else {
@@ -177,10 +179,14 @@ impl RegistryClient for NpmClient {
                 reason: "tarball URL must be https".to_owned(),
             });
         }
-        let mut resp = self.client.get(url).send().map_err(|e| PackageError::Network {
-            url: url.clone(),
-            cause: e.to_string(),
-        })?;
+        let mut resp = self
+            .client
+            .get(url)
+            .send()
+            .map_err(|e| PackageError::Network {
+                url: url.clone(),
+                cause: e.to_string(),
+            })?;
         if !resp.status().is_success() {
             return Err(PackageError::Network {
                 url: url.clone(),
@@ -218,10 +224,10 @@ fn verify_npm_integrity(
         use base64::Engine as _;
         let expected = base64::engine::general_purpose::STANDARD
             .decode(rest.trim())
-        .map_err(|_| PackageError::Integrity {
-            name: name.to_owned(),
-            version: version.to_owned(),
-        })?;
+            .map_err(|_| PackageError::Integrity {
+                name: name.to_owned(),
+                version: version.to_owned(),
+            })?;
         let data = std::fs::read(path).map_err(|e| PackageError::Io {
             path: path.display().to_string(),
             cause: e.to_string(),
@@ -336,10 +342,14 @@ impl RegistryClient for PypiClient {
             }
         }
 
-        let resp = self.client.get(&url).send().map_err(|e| PackageError::Network {
-            url: url.clone(),
-            cause: e.to_string(),
-        })?;
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .map_err(|e| PackageError::Network {
+                url: url.clone(),
+                cause: e.to_string(),
+            })?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             return Err(PackageError::NotFound {
@@ -359,7 +369,10 @@ impl RegistryClient for PypiClient {
             cause: e.to_string(),
         })?;
 
-        let version = spec.version.clone().unwrap_or_else(|| meta.info.version.clone());
+        let version = spec
+            .version
+            .clone()
+            .unwrap_or_else(|| meta.info.version.clone());
 
         // Find URL for that version: prefer sdist.
         let urls = if let Some(releases) = &meta.releases {
@@ -403,10 +416,14 @@ impl RegistryClient for PypiClient {
 
     fn fetch(&self, resolved: &ResolvedPackage, dest_file: &Path) -> Result<(), PackageError> {
         let url = &resolved.tarball_url;
-        let mut resp = self.client.get(url).send().map_err(|e| PackageError::Network {
-            url: url.clone(),
-            cause: e.to_string(),
-        })?;
+        let mut resp = self
+            .client
+            .get(url)
+            .send()
+            .map_err(|e| PackageError::Network {
+                url: url.clone(),
+                cause: e.to_string(),
+            })?;
         if !resp.status().is_success() {
             return Err(PackageError::Network {
                 url: url.clone(),

@@ -122,7 +122,9 @@ impl PackageSpec {
             });
         }
         // Basic name validation.
-        if name.contains('\0') || name.contains('/') && registry == Registry::Pypi && name.contains('/') {
+        if name.contains('\0')
+            || name.contains('/') && registry == Registry::Pypi && name.contains('/')
+        {
             // pypi names should not contain '/', npm scoped does.
         }
 
@@ -140,7 +142,10 @@ impl PackageSpec {
     }
 }
 
-fn split_name_version(registry: Registry, s: &str) -> Result<(String, Option<String>), PackageError> {
+fn split_name_version(
+    registry: Registry,
+    s: &str,
+) -> Result<(String, Option<String>), PackageError> {
     match registry {
         Registry::Npm => split_npm_name_version(s),
         Registry::Pypi => split_pypi_name_version(s),

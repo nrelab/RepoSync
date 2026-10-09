@@ -38,7 +38,12 @@ pub fn resolve_and_materialize(
         let dir = package_dir(&spec, ver);
         if is_cached(&dir) {
             if verbose {
-                eprintln!("reposync: using cache {}@{} -> {}", spec.name, ver, dir.display());
+                eprintln!(
+                    "reposync: using cache {}@{} -> {}",
+                    spec.name,
+                    ver,
+                    dir.display()
+                );
             }
             return Ok(dir);
         }

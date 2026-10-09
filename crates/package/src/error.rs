@@ -24,7 +24,11 @@ pub enum PackageError {
     Integrity { name: String, version: String },
 
     #[error("failed to extract {name}@{version}: {cause}")]
-    Extraction { name: String, version: String, cause: String },
+    Extraction {
+        name: String,
+        version: String,
+        cause: String,
+    },
 
     #[error("cache I/O error at {path}: {cause}")]
     Io { path: String, cause: String },
