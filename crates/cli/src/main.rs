@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use anyhow::Context;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, shells::Bash, shells::Fish, shells::Zsh};
 use reposync_config::{ConfigFile, Destination, Source, TransformKind};
 use reposync_diff::diff;
 use reposync_git::{CommitSpec, GitRepo};
@@ -98,6 +99,19 @@ enum Command {
         #[arg(long)]
         all: bool,
     },
+    /// Generate shell completion scripts.
+    #[command(subcommand)]
+    Completions(CompletionsArgs),
+}
+
+#[derive(Debug, Subcommand)]
+enum CompletionsArgs {
+    /// Generate bash completion script.
+    Bash,
+    /// Generate zsh completion script.
+    Zsh,
+    /// Generate fish completion script.
+    Fish,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -132,6 +146,7 @@ fn main() -> anyhow::Result<()> {
             all_versions,
             all,
         ),
+        Command::Completions(args) => cmd_completions(args),
     }
 }
 
@@ -953,4 +968,27 @@ fn exit_with_package_error(e: &reposync_package::PackageError) -> ! {
         eprintln!("{}", reposync_package::PackageError::supported_registries());
     }
     std::process::exit(code);
+}
+
+// ---------------------------------------------------------------------------
+// completions
+// ---------------------------------------------------------------------------
+
+fn cmd_completions(args: CompletionsArgs) -> anyhow::Result<()> {
+    let mut cmd = Cli::command();
+    let name = cmd.get_name().to_string();
+
+    match args {
+        CompletionsArgs::Bash => {
+            generate(Bash, &mut cmd, &name, &mut std::io::stdout());
+        }
+        CompletionsArgs::Zsh => {
+            generate(Zsh, &mut cmd, &name, &mut std::io::stdout());
+        }
+        CompletionsArgs::Fish => {
+            generate(Fish, &mut cmd, &name, &mut std::io::stdout());
+        }
+    }
+
+    Ok(())
 }
