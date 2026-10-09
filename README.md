@@ -61,6 +61,7 @@ cargo run -p reposync-cli -- migrate path/to/pipeline.yaml --history
 Other commands:
 
 ```text
+reposync init                Scaffold a new pipeline configuration file
 reposync validate <config>   Validate a pipeline configuration
 reposync plan <config>       Show a dry-run plan
 reposync migrate <config>    Transform, commit, and push a repository
@@ -139,6 +140,24 @@ transform. Glob patterns support `*`, `?`, and `**` path matching.
 
 See the complete examples in [`examples/`](examples/), including string
 rewrites, metadata, patches, and monorepo extraction.
+
+### Creating a Configuration
+
+Use `reposync init` to scaffold a new configuration file:
+
+```bash
+# Create reposync.yaml in the current directory
+cargo run -p reposync-cli -- init
+
+# Create a configuration file at a custom path
+cargo run -p reposync-cli -- init --output my-migration.yaml
+```
+
+The generated configuration includes:
+- Common transforms (filter, move, delete)
+- Safety policy with denied paths
+- Comments explaining each section
+- Next steps for validation and migration
 
 ## State and safety
 

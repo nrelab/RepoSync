@@ -30,6 +30,12 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Scaffold a new pipeline configuration file.
+    Init {
+        /// Path where to create the configuration file (default: `reposync.yaml`).
+        #[arg(short, long, default_value = "reposync.yaml")]
+        output: PathBuf,
+    },
     /// Validate a pipeline configuration file.
     Validate {
         /// Path to the pipeline configuration file.
@@ -97,6 +103,7 @@ enum Command {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Command::Init { output } => cmd_init(&output),
         Command::Validate { config } => cmd_validate(&config),
         Command::Plan { config } => cmd_plan(&config),
         Command::Migrate {
@@ -126,6 +133,95 @@ fn main() -> anyhow::Result<()> {
             all,
         ),
     }
+}
+
+// ---------------------------------------------------------------------------
+// init
+// ---------------------------------------------------------------------------
+
+fn cmd_init(output: &std::path::Path) -> anyhow::Result<()> {
+    if output.exists() {
+        anyhow::bail!("configuration file already exists: {}", output.display());
+    }
+
+    let config = r#"# RepoSync pipeline configuration
+#
+# This file defines a migration from a source repository to a destination
+# repository with optional transformations.
+
+pipeline:
+  name: my-migration
+
+# Source repository configuration
+source:
+  type: git
+  url: /path/to/source/repository
+  ref: main
+
+# Transformation pipeline (applied in order)
+transform:
+  # Keep only certain paths
+  - filter:
+      paths:
+        - packages/sdk/**
+        - LICENSE
+        - README.md
+
+  # Move directory to root
+  - move:
+      from: packages/sdk
+      to: .
+
+  # Remove sensitive files
+  - delete:
+      paths:
+        - "**/.env"
+        - "**/secrets/**"
+        - "**/*.key"
+
+# Destination repository configuration
+destination:
+  type: git
+  url: /path/to/destination/repository
+  branch: main
+
+# Safety policy (optional)
+policy:
+  deny:
+    - .env
+    - "**/credentials/**"
+    - "**/*.pem"
+  max_deleted_files: 100
+"#;
+
+    // Create parent directory if it doesn't exist
+    if let Some(parent) = output.parent() {
+        std::fs::create_dir_all(parent).with_context(|| {
+            format!(
+                "failed to create directory for config file: {}",
+                parent.display()
+            )
+        })?;
+    }
+
+    std::fs::write(output, config)
+        .with_context(|| format!("failed to write configuration file to {}", output.display()))?;
+
+    println!("Created configuration file: {}", output.display());
+    println!();
+    println!("Next steps:");
+    println!("1. Edit the configuration to set your source and destination URLs");
+    println!("2. Run: reposync validate {}", output.display());
+    println!(
+        "3. Preview the migration: reposync plan {}",
+        output.display()
+    );
+    println!(
+        "4. Run the migration: reposync migrate {}",
+        output.display()
+    );
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

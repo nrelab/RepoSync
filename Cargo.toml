@@ -7,7 +7,6 @@ members = [
     "crates/diff",
     "crates/filesystem",
     "crates/git",
-    "crates/metadata",
     "crates/migration",
     "crates/package",
     "crates/policy",

@@ -1854,10 +1854,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reposync-metadata"
-version = "0.1.0"
-
-[[package]]
 name = "reposync-migration"
 version = "0.1.0"
 dependencies = [

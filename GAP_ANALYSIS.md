@@ -6,45 +6,48 @@ This document identifies gaps, missing features, and areas for improvement in th
 
 ---
 
-## Critical Gaps
+## Critical Gaps (RESOLVED)
 
-### 1. Empty `metadata` Crate
+### 1. Empty `metadata` Crate ✅ RESOLVED
 
-**Status:** Critical  
-**Location:** `crates/metadata/src/lib.rs` (4 lines only)
+**Status:** Critical → Resolved  
+**Location:** `crates/metadata/src/lib.rs` (was 4 lines only)
 
-**Issue:** The `metadata` crate was intended to handle commit metadata, author mapping, and commit message transformations for M11 (History Migration) and M13 (AST-Aware Transforms). However, the crate is essentially empty with only documentation. The actual functionality is implemented in other crates:
+**Issue:** The `metadata` crate was intended to handle commit metadata, author mapping, and commit message transformations for M11 (History Migration) and M13 (AST-Aware Transforms). However, the crate was essentially empty with only documentation. The actual functionality was implemented in other crates:
 - `crates/transform/src/metadata.rs` - Metadata transform implementation
 - `crates/git/src/repo.rs` - Commit metadata handling
 - `crates/core/src/snapshot.rs` - Repository metadata storage
 
-**Impact:** 
-- Confusing architecture (empty crate with responsibilities scattered)
-- Violates single responsibility principle
-- Makes future maintenance harder
+**Resolution:** Removed the empty `metadata` crate entirely since:
+- No other crates depended on it
+- All functionality was already properly implemented in appropriate locations
+- Removing it cleans up the architecture and eliminates confusion
 
-**Recommendation:** Either:
-- **Option A:** Implement the intended functionality in the `metadata` crate and refactor other crates to use it
-- **Option B:** Remove the empty `metadata` crate and consolidate its responsibilities into the appropriate existing crates
+**Impact:** 
+- Cleaner architecture without empty crates
+- Reduced maintenance burden
+- Clearer responsibility boundaries
 
 ---
 
-### 2. Missing `reposync init` Command
+### 2. Missing `reposync init` Command ✅ RESOLVED
 
-**Status:** Medium  
+**Status:** Medium → Resolved  
 **Location:** `crates/cli/src/main.rs`
 
-**Issue:** The PLAN.md (M7) mentions `reposync init` to scaffold configuration files, but this command is not implemented.
+**Issue:** The PLAN.md (M7) mentioned `reposync init` to scaffold configuration files, but this command was not implemented.
+
+**Resolution:** Implemented `reposync init` command that:
+- Creates a new configuration file (default: `reposync.yaml`)
+- Supports custom output path via `--output` flag
+- Generates a well-commented template with common transforms
+- Provides helpful next steps for users
+- Validates that the file doesn't already exist before writing
 
 **Impact:**
-- New users must manually create YAML configuration files
-- Poor developer experience for first-time users
-- Inconsistent with documentation expectations
-
-**Recommendation:** Implement `reposync init` command that:
-- Prompts for or accepts source/destination URLs
-- Creates a basic pipeline YAML with common transforms
-- Provides an interactive mode for configuration
+- Improved developer experience for new users
+- Better onboarding flow
+- Consistent with documentation expectations
 
 ---
 
@@ -247,16 +250,16 @@ jobs:
 
 ## Summary
 
-### Critical (Must Fix)
-1. **Empty metadata crate** - Implement or remove
-2. **Missing `reposync init` command** - Implement for better UX
+### Critical (Must Fix) ✅ PHASE 1 COMPLETE
+1. **Empty metadata crate** ✅ RESOLVED - Removed empty crate
+2. **Missing `reposync init` command** ✅ RESOLVED - Implemented scaffolding command
 
 ### Important (Should Fix)
 3. **Error handling improvements** - Replace unwrap() calls
 4. **Missing documentation for `reposync path`** - Add to docs/
 
 ### Nice to Have (Could Fix)
-5. **Test coverage for metadata** - Add once implemented
+5. **Test coverage for metadata** - N/A (crate removed)
 6. **Enhanced CI workflow** - Add release builds, coverage, security scanning
 7. **Shell completion scripts** - Improve UX
 8. **Better error messages** - Improve clarity
@@ -271,18 +274,18 @@ jobs:
 
 ---
 
-## Implementation Priority
+## Implementation Status
 
-**Phase 1 (Immediate):**
-1. Resolve empty metadata crate (critical architecture issue)
-2. Implement `reposync init` command (user experience)
+**Phase 1 (Immediate):** ✅ COMPLETE
+1. ✅ Resolved empty metadata crate - Removed unused crate
+2. ✅ Implemented `reposync init` command - Configuration scaffolding
 
-**Phase 2 (Short-term):**
+**Phase 2 (Short-term):** READY TO START
 3. Improve error handling in CLI
 4. Add documentation for `reposync path`
 5. Add more configuration examples
 
-**Phase 3 (Long-term):**
+**Phase 3 (Long-term):** NOT STARTED
 6. Enhance CI/CD workflow
 7. Add shell completion
 8. Add performance benchmarks

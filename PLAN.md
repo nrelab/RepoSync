@@ -100,8 +100,8 @@ design doc.
 
 **Tasks**
 - `cargo new` workspace with crates:
-  `core`, `git`, `config`, `transform`, `filesystem`, `metadata`, `diff`,
-  `migration`, `cli`.
+  `core`, `git`, `config`, `transform`, `filesystem`, `diff`,
+  `migration`, `cli`, `package`, `policy`, `state`, `sync`.
 - Empty `transformations/{builtin,examples}`, `tests/fixtures/`, `docs/`,
   `examples/` dirs.
 - CI lint config (clippy, rustfmt), `.gitignore`.
@@ -244,6 +244,7 @@ design doc.
 
 **DoD**
 - `reposync plan ./copy.yaml` prints full report and mutates nothing.
+- `reposync init` scaffolds a valid configuration file with helpful comments.
 
 **Est:** 2d
 
@@ -391,9 +392,10 @@ Recommended commit order for the MVP:
 7. **delete, copy, move, rename** + unit tests
 8. Diff engine
 9. Commit/push wiring → **`reposync migrate` works end-to-end**
-10. Dry-run report + `plan` command
-11. Policy engine + deny/limit gates
-12. Test harness + golden fixtures for all transforms
+10. `reposync init` command for configuration scaffolding
+11. Dry-run report + `plan` command
+12. Policy engine + deny/limit gates
+13. Test harness + golden fixtures for all transforms
 
 ---
 
