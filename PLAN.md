@@ -7,6 +7,42 @@ transformation engine. Design doc condensed into an executable build plan.
 > synchronization engine for monorepos."**
 > Monorepo extraction/export is a first-class feature, not a Copybara clone.
 
+## Implementation Status
+
+**Overall Status: ✅ COMPLETE (Phase 1 + Phase 2)**
+
+All milestones from the original build plan have been implemented. Additionally,
+the `reposync path` command has been implemented to provide package source
+materialization for coding agents (see `specs/reposync-path/PRODUCT.md`).
+
+### Phase 1 (M0-M9) - MVP - ✅ COMPLETE
+- M0: Workspace Scaffold ✅
+- M1: Repository Snapshot ✅
+- M2: Config Schema + Validation ✅
+- M3: Git Layer ✅
+- M4: Transformation Engine + Tier 1 ✅
+- M5: Diff Engine ✅
+- M6: Commit + Push ✅
+- M7: CLI + Dry Run ✅
+- M8: Policy Engine / Safety Model ✅
+- M9: Test Harness + Fixtures ✅
+
+### Phase 2 (M10-M14) - Production Features - ✅ COMPLETE
+- M10: State DB + Change Mapping ✅
+- M11: History Migration ✅
+- M12: Bidirectional Sync ✅
+- M13: AST-Aware Transforms + Dependency Rewriting ✅ (regex-lite, tree-sitter deferred)
+- M14: Plugin Ecosystem (WASM) ✅
+
+### Additional Features - ✅ COMPLETE
+- `reposync path` command (npm/pypi package source materialization) ✅
+
+### Code Quality
+- ✅ All tests passing (115+ tests)
+- ✅ `cargo clippy --workspace --all-targets -- -D warnings` clean
+- ✅ `cargo fmt --all -- --check` clean
+- ✅ No unsafe code (`unsafe_code = forbid`)
+
 ---
 
 ## 0. Guiding Decisions
@@ -381,3 +417,31 @@ Recommended commit order for the MVP:
 - GitHub/GitLab/Gerrit providers (trait hooks exist, providers later)
 - Secret scanning engine (detection hook only)
 - Partial migrations, CI-driven dashboards
+
+---
+
+## 6. Potential Future Enhancements
+
+While the core plan is complete, the following could be considered for future versions:
+
+### M13 Enhancements
+- Full tree-sitter integration for AST-aware transforms (currently using regex-lite)
+- Support for additional languages: Rust, Python, Markdown
+- `--prefer wheel` flag for PyPI sdist vs wheel selection
+
+### Registry Support
+- Additional registries: `crates:`, `go:`, `maven:`
+- `--refresh` flag for cache freshness
+- `--max-cache-size` for cache management
+
+### Advanced Features
+- TUI/interactive mode for complex migrations
+- Web dashboard for migration monitoring
+- Partial/incremental migration strategies
+- CI/CD integration hooks
+- Secret scanning engine integration (beyond detection hooks)
+
+### CLI Enhancements
+- `reposync init` command to scaffold configurations
+- Completion scripts for bash/zsh/fish
+- Config file validation with detailed error suggestions

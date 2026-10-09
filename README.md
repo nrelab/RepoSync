@@ -23,6 +23,7 @@ dry-run-safe repository transformations.
   replacement, prefix stripping, metadata, patches, dependency rewriting, and
   import rewriting.
 - WASM custom transformation plugins.
+- Package source materialization: resolve npm/pypi packages to local cached directories.
 
 ## Quick start
 
@@ -65,6 +66,34 @@ reposync plan <config>       Show a dry-run plan
 reposync migrate <config>    Transform, commit, and push a repository
 reposync diff <config>       Show a path/content diff
 reposync sync <config>       Run bidirectional synchronization
+reposync path <spec>         Resolve a package spec to its unpacked source directory
+```
+
+### Package Source Access
+
+`reposync path` resolves npm and pypi package specs to local cached directories:
+
+```bash
+# Resolve latest version (caches locally)
+cargo run -p reposync-cli -- path zod
+
+# Resolve specific version
+cargo run -p reposync-cli -- path zod@3.22.4
+
+# PyPI packages
+cargo run -p reposync-cli -- path pypi:requests
+
+# JSON output with metadata
+cargo run -p reposync-cli -- path --json zod
+
+# Evict from cache
+cargo run -p reposync-cli -- path --evict zod
+```
+
+Packages are cached under `~/.cache/reposync/packages/` and can be used offline
+once cached. The command is shell-composable for use with tools like `rg`:
+```bash
+rg "parse" $(cargo run -p reposync-cli -- path zod)
 ```
 
 ## Configuration
@@ -135,6 +164,7 @@ to the destination.
 | `state` | SQLite commit mappings |
 | `migration` | History replay and bidirectional sync |
 | `sync` | Snapshot planning and commit/push orchestration |
+| `package` | Registry package source materialization (npm/pypi) |
 | `cli` | `reposync` command-line interface |
 
 ## Development
