@@ -1,0 +1,37 @@
+# History migration example
+#
+# This example demonstrates history migration mode, which replays each source
+# commit individually through the transform pipeline instead of creating a
+# single snapshot commit.
+
+pipeline:
+  name: history-migration
+
+source:
+  type: git
+  url: /path/to/internal-repo
+  ref: main
+
+# Transform applied to each commit
+transform:
+  - filter:
+      paths:
+        - src/**
+        - tests/**
+  - delete:
+      paths:
+        - "**/.env"
+        - "**/secrets/**"
+  - author_mapping:
+      mapping:
+        "internal@example.com": "public@example.com"
+        "bot@company.com": "ci@company.com"
+  - commit_message:
+      message: "[mirror] "
+
+destination:
+  type: git
+  url: /path/to/public-repo
+  branch: main
+
+# Run with: reposync migrate history-migration.yaml --history

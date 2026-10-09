@@ -419,15 +419,19 @@ fn cmd_migrate(
             result.diff.modified.len(),
             result.diff.renamed.len(),
         );
-        println!("Commit: {}", result.commit_id.as_ref().unwrap());
+        if let Some(commit_id) = &result.commit_id {
+            println!("Commit: {}", commit_id);
+        }
         if result.pushed {
             println!("Pushed to {}", config.destination.url());
         }
-        println!(
-            "Recorded mapping: {} -> {}",
-            source_head.as_str(),
-            result.commit_id.as_ref().unwrap()
-        );
+        if let Some(commit_id) = &result.commit_id {
+            println!(
+                "Recorded mapping: {} -> {}",
+                source_head.as_str(),
+                commit_id
+            );
+        }
     } else {
         println!("No changes to apply: destination already up to date.");
     }
@@ -687,46 +691,80 @@ fn build_transforms(config: &ConfigFile) -> anyhow::Result<Vec<Box<dyn Transform
         let Some(kind) = node.kind() else { continue };
         let boxed: Box<dyn Transformation> = match kind {
             TransformKind::Filter => {
-                let paths = node.filter.as_ref().unwrap().paths.clone();
+                let paths = node
+                    .filter
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("filter transform missing arguments"))?
+                    .paths
+                    .clone();
                 Box::new(Filter::new(paths))
             }
             TransformKind::Delete => {
-                let paths = node.delete.as_ref().unwrap().paths.clone();
+                let paths = node
+                    .delete
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("delete transform missing arguments"))?
+                    .paths
+                    .clone();
                 Box::new(Delete::new(paths))
             }
             TransformKind::Copy => {
-                let args = node.copy.as_ref().unwrap();
+                let args = node
+                    .copy
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("copy transform missing arguments"))?;
                 Box::new(Copy::new(&args.from, &args.to))
             }
             TransformKind::Move => {
-                let args = node.r#move.as_ref().unwrap();
+                let args = node
+                    .r#move
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("move transform missing arguments"))?;
                 Box::new(Move::new(&args.from, &args.to))
             }
             TransformKind::Rename => {
-                let args = node.rename.as_ref().unwrap();
+                let args = node
+                    .rename
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("rename transform missing arguments"))?;
                 Box::new(Rename::new(&args.from, &args.to))
             }
             TransformKind::Replace => {
-                let args = node.replace.as_ref().unwrap();
+                let args = node
+                    .replace
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("replace transform missing arguments"))?;
                 Box::new(Replace::new(args.file.clone(), args.replacements.clone()))
             }
             TransformKind::StripPrefix => {
-                let args = node.strip_prefix.as_ref().unwrap();
+                let args = node
+                    .strip_prefix
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("strip_prefix transform missing arguments"))?;
                 Box::new(StripPrefix::new(args.path.clone()))
             }
             TransformKind::DependencyRewrite => {
-                let args = node.dependency_rewrite.as_ref().unwrap();
+                let args = node
+                    .dependency_rewrite
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("dependency_rewrite transform missing arguments"))?;
                 Box::new(DependencyRewrite::new(
                     args.package_rename.clone(),
                     args.workspace_version.clone(),
                 ))
             }
             TransformKind::ImportRewrite => {
-                let args = node.import_rewrite.as_ref().unwrap();
+                let args = node
+                    .import_rewrite
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("import_rewrite transform missing arguments"))?;
                 Box::new(ImportRewrite::new(args.renames.clone()))
             }
             TransformKind::RegexReplace => {
-                let args = node.regex_replace.as_ref().unwrap();
+                let args = node
+                    .regex_replace
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("regex_replace transform missing arguments"))?;
                 Box::new(RegexReplace::new(
                     args.files.clone(),
                     args.pattern.clone(),
@@ -734,23 +772,38 @@ fn build_transforms(config: &ConfigFile) -> anyhow::Result<Vec<Box<dyn Transform
                 ))
             }
             TransformKind::Prepend => {
-                let args = node.prepend.as_ref().unwrap();
+                let args = node
+                    .prepend
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("prepend transform missing arguments"))?;
                 Box::new(Prepend::new(args.files.clone(), args.content.clone()))
             }
             TransformKind::Append => {
-                let args = node.append.as_ref().unwrap();
+                let args = node
+                    .append
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("append transform missing arguments"))?;
                 Box::new(Append::new(args.files.clone(), args.content.clone()))
             }
             TransformKind::Patch => {
-                let args = node.patch.as_ref().unwrap();
+                let args = node
+                    .patch
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("patch transform missing arguments"))?;
                 Box::new(Patch::new(args.file.clone(), args.patch.clone()))
             }
             TransformKind::Metadata => {
-                let args = node.metadata.as_ref().unwrap();
+                let args = node
+                    .metadata
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("metadata transform missing arguments"))?;
                 Box::new(Metadata::new(args.key.clone(), args.value.clone()))
             }
             TransformKind::Custom => {
-                let args = node.custom.as_ref().unwrap();
+                let args = node
+                    .custom
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("custom transform missing arguments"))?;
                 let plugin = reposync_transform::PluginTransform::from_file(
                     &args.name,
                     std::path::Path::new(&args.path),

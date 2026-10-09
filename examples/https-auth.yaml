@@ -1,0 +1,36 @@
+# HTTPS remote with authentication example
+#
+# This example shows HTTPS remotes. Authentication is handled by Git's
+# credential helper (SSH keys, credential managers, etc.).
+
+pipeline:
+  name: https-migration
+
+# Source repository via HTTPS
+source:
+  type: git
+  url: https://github.com/organization/internal-repo.git
+  ref: develop
+
+# Transform specific package
+transform:
+  - filter:
+      paths:
+        - packages/api/**
+        - packages/shared/**
+  - strip_prefix:
+      path: packages/api
+
+# Destination repository via HTTPS
+destination:
+  type: git
+  url: https://github.com/organization/public-api.git
+  branch: main
+
+# Policy
+policy:
+  deny:
+    - "**/*.key"
+    - "**/*.pem"
+    - "**/secrets/**"
+  max_deleted_files: 50

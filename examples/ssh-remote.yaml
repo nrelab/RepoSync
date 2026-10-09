@@ -1,0 +1,35 @@
+# SSH remote configuration example
+#
+# This example shows how to use SSH remotes for both source and destination.
+
+pipeline:
+  name: ssh-migration
+
+# Source repository accessed via SSH
+source:
+  type: git
+  url: git@github.com:organization/internal-repo.git
+  ref: main
+
+# Filter and transform
+transform:
+  - filter:
+      paths:
+        - packages/sdk/**
+        - LICENSE
+  - move:
+      from: packages/sdk
+      to: .
+
+# Destination repository accessed via SSH
+destination:
+  type: git
+  url: git@github.com:organization/public-repo.git
+  branch: main
+
+# Safety policy
+policy:
+  deny:
+    - .env
+    - "**/credentials/**"
+  max_deleted_files: 100

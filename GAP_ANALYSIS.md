@@ -51,67 +51,80 @@ This document identifies gaps, missing features, and areas for improvement in th
 
 ---
 
-## Minor Gaps
+## Minor Gaps (RESOLVED)
 
-### 3. Error Handling Improvements
+### 3. Error Handling Improvements ✅ RESOLVED
 
-**Status:** Low  
-**Location:** Throughout codebase, especially `crates/cli/src/main.rs`
+**Status:** Low → Resolved  
+**Location:** `crates/cli/src/main.rs`
 
 **Issue:** Extensive use of `unwrap()` and `expect()` in production code, particularly in CLI error paths.
 
-**Examples:**
-```rust
-// crates/cli/src/main.rs:326
-println!("Commit: {}", result.commit_id.as_ref().unwrap());
-
-// crates/cli/src/main.rs:333
-result.commit_id.as_ref().unwrap()
-```
+**Resolution:** 
+- Replaced critical `unwrap()` calls in `cmd_migrate` with proper option handling
+- Added proper error messages for missing commit IDs
+- Improved `build_transforms` to use `ok_or_else` with descriptive error messages instead of `unwrap()`
+- Note: Remaining `unwrap()` calls in `build_transforms` are safe as they're guarded by config validation and `kind()` checks
 
 **Impact:**
-- Potential panics in production scenarios
-- Poor error messages for users
-- Difficult to debug issues
-
-**Recommendation:** Replace `unwrap()` calls with proper error handling using `anyhow::Context` or custom error types.
+- Better error messages for users
+- No more potential panics from missing optional values
+- More maintainable error handling
 
 ---
 
-### 4. Missing Documentation for `reposync path`
+### 4. Missing Documentation for `reposync path` ✅ RESOLVED
 
-**Status:** Low  
+**Status:** Low → Resolved  
 **Location:** `docs/` directory
 
-**Issue:** The `docs/` directory has documentation for core features but lacks documentation for the `reposync path` command, even though it's fully implemented and documented in `specs/reposync-path/`.
+**Issue:** The `docs/` directory lacked documentation for the `reposync path` command.
+
+**Resolution:** Created comprehensive documentation in `docs/package-source.md`:
+- Complete usage guide with examples
+- Registry support details (npm, PyPI)
+- Cache layout and environment variables
+- Error handling and exit codes
+- Security features (HTTPS, sandboxed extraction, integrity verification)
+- Shell composability examples
+- Integration with tools (ripgrep, cat, find, editors)
+- Best practices and troubleshooting
 
 **Impact:**
-- Users may not discover the package source materialization feature
-- Inconsistent documentation structure
-
-**Recommendation:** Add a new document `docs/package-source.md` that:
-- Explains the `reposync path` command
-- Shows usage examples
-- Documents cache behavior
-- Explains registry support
+- Users can discover the package source materialization feature
+- Consistent documentation structure
+- Better onboarding for using the command
 
 ---
 
-### 5. Test Coverage Gaps
+### 5. More Configuration Examples ✅ RESOLVED
 
-**Status:** Low  
-**Location:** `crates/metadata/`
+**Status:** Low → Resolved  
+**Location:** `examples/` directory
 
-**Issue:** The `metadata` crate has no tests because it's empty. If implemented, it would need comprehensive test coverage.
+**Issue:** Limited example configurations in `examples/` directory.
+
+**Resolution:** Added 4 new example configurations:
+- `ssh-remote.yaml` - SSH remote configuration for both source and destination
+- `https-auth.yaml` - HTTPS remotes with authentication notes
+- `history-migration.yaml` - History migration with author mapping and commit message prefix
+- `bidirectional-sync.yaml` - Bidirectional sync with loop prevention explanation
 
 **Impact:**
-- No validation of metadata handling logic
-- Risk of regressions if functionality is added
+- Users have more comprehensive examples covering common use cases
+- Better understanding of SSH/HTTPS configuration
+- Clear examples of history migration and bidirectional sync
 
-**Recommendation:** Once metadata functionality is consolidated, add:
-- Unit tests for metadata transforms
-- Integration tests for author mapping
-- Tests for commit message transformations
+---
+
+### 6. Test Coverage Gaps (N/A)
+
+**Status:** N/A  
+**Location:** `crates/metadata/`
+
+**Issue:** The `metadata` crate had no tests because it was empty.
+
+**Resolution:** The `metadata` crate was removed in Phase 1, so this gap no longer applies.
 
 ---
 
@@ -251,19 +264,19 @@ jobs:
 ## Summary
 
 ### Critical (Must Fix) ✅ PHASE 1 COMPLETE
-1. **Empty metadata crate** ✅ RESOLVED - Removed empty crate
+1. **Empty metadata crate** ✅ RESOLVED - Removed unused crate
 2. **Missing `reposync init` command** ✅ RESOLVED - Implemented scaffolding command
 
-### Important (Should Fix)
-3. **Error handling improvements** - Replace unwrap() calls
-4. **Missing documentation for `reposync path`** - Add to docs/
+### Important (Should Fix) ✅ PHASE 2 COMPLETE
+3. **Error handling improvements** ✅ RESOLVED - Replaced unwrap() calls in critical paths
+4. **Missing documentation for `reposync path`** ✅ RESOLVED - Added comprehensive docs
+5. **More configuration examples** ✅ RESOLVED - Added 4 new examples (SSH, HTTPS, history, bidirectional)
+6. **Test coverage for metadata** ✅ N/A (crate removed)
 
 ### Nice to Have (Could Fix)
-5. **Test coverage for metadata** - N/A (crate removed)
-6. **Enhanced CI workflow** - Add release builds, coverage, security scanning
-7. **Shell completion scripts** - Improve UX
-8. **Better error messages** - Improve clarity
-9. **More configuration examples** - Help users
+7. **Enhanced CI workflow** - Add release builds, coverage, security scanning
+8. **Shell completion scripts** - Improve UX
+9. **Better error messages** - Improve clarity (partially done in Phase 2)
 10. **Performance monitoring** - Add benchmarks
 
 ### Out of Scope
@@ -280,10 +293,10 @@ jobs:
 1. ✅ Resolved empty metadata crate - Removed unused crate
 2. ✅ Implemented `reposync init` command - Configuration scaffolding
 
-**Phase 2 (Short-term):** READY TO START
-3. Improve error handling in CLI
-4. Add documentation for `reposync path`
-5. Add more configuration examples
+**Phase 2 (Short-term):** ✅ COMPLETE
+3. ✅ Improve error handling in CLI - Replaced unwrap() calls with proper error handling
+4. ✅ Add documentation for `reposync path` - Created comprehensive package-source.md
+5. ✅ Add more configuration examples - Added SSH, HTTPS, history, and bidirectional sync examples
 
 **Phase 3 (Long-term):** NOT STARTED
 6. Enhance CI/CD workflow
