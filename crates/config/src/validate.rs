@@ -250,6 +250,24 @@ fn validate_transform(index: usize, node: &TransformNode, errors: &mut Vec<Valid
                 errors,
             );
         }
+        TransformKind::String => {
+            // String transform validation - basic check that op is provided
+            let args = node.string.as_ref().expect("kind string implies args");
+            if args.op.is_empty() {
+                errors.push(ValidationError::new(format!(
+                    "transform[{index}]: string transform requires 'op' field"
+                )));
+            }
+        }
+        TransformKind::Globals => {
+            // Globals transform validation - basic check that fn_name is provided
+            let args = node.globals.as_ref().expect("kind globals implies args");
+            if args.fn_name.is_empty() {
+                errors.push(ValidationError::new(format!(
+                    "transform[{index}]: globals transform requires 'fn_name' field"
+                )));
+            }
+        }
         TransformKind::Custom => {
             validate_custom(
                 index,

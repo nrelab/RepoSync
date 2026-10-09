@@ -21,6 +21,8 @@ pub enum TransformKind {
     AuthorMapping,
     DependencyRewrite,
     ImportRewrite,
+    String,
+    Globals,
     Custom,
 }
 
@@ -45,6 +47,8 @@ impl TransformKind {
             Self::AuthorMapping => "author_mapping",
             Self::DependencyRewrite => "dependency_rewrite",
             Self::ImportRewrite => "import_rewrite",
+            Self::String => "string",
+            Self::Globals => "globals",
             Self::Custom => "custom",
         }
     }
@@ -67,6 +71,8 @@ impl TransformKind {
             | Self::ImportRewrite
             | Self::AuthorMapping
             | Self::CommitMessage
+            | Self::String
+            | Self::Globals
             | Self::Custom => EngineSupport::Supported,
             Self::RegexReplace | Self::Prepend | Self::Append | Self::Patch | Self::Metadata => {
                 EngineSupport::Supported
@@ -156,6 +162,24 @@ args!(DependencyRewriteArgs {
 args!(ImportRewriteArgs {
     renames: BTreeMap<String, String>,
 });
+args!(StringArgs {
+    file: String,
+    op: String,
+    pattern: Option<String>,
+    suffix: Option<String>,
+    prefix: Option<String>,
+    old: Option<String>,
+    new: Option<String>,
+    sep: Option<String>,
+    separator: Option<String>,
+    chars: Option<String>,
+    maxsplit: Option<usize>,
+    args: Option<Vec<String>>,
+});
+args!(GlobalsArgs {
+    fn_name: String,
+    args: BTreeMap<String, serde_yaml::Value>,
+});
 args!(CustomArgs {
     name: String,
     path: String,
@@ -216,6 +240,12 @@ pub struct TransformNode {
     /// Rewrite module specifiers in source files (AST-lite import rewrite).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub import_rewrite: Option<ImportRewriteArgs>,
+    /// Apply string operations to file contents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub string: Option<StringArgs>,
+    /// Call global utility functions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub globals: Option<GlobalsArgs>,
     /// Run a named plugin.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom: Option<CustomArgs>,
@@ -257,6 +287,10 @@ impl TransformNode {
             Some(TransformKind::DependencyRewrite)
         } else if self.import_rewrite.is_some() {
             Some(TransformKind::ImportRewrite)
+        } else if self.string.is_some() {
+            Some(TransformKind::String)
+        } else if self.globals.is_some() {
+            Some(TransformKind::Globals)
         } else if self.custom.is_some() {
             Some(TransformKind::Custom)
         } else {
@@ -284,6 +318,8 @@ impl TransformNode {
             self.author_mapping.is_some(),
             self.dependency_rewrite.is_some(),
             self.import_rewrite.is_some(),
+            self.string.is_some(),
+            self.globals.is_some(),
             self.custom.is_some(),
         ];
         present.into_iter().filter(|present| *present).count()

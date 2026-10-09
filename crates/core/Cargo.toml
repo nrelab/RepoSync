@@ -17,4 +17,10 @@ sha2.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+criterion = "0.5"
+serde_json.workspace = true
 tempfile.workspace = true
+
+[[bench]]
+name = "core_bench"
+harness = false

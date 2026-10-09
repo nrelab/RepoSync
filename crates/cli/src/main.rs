@@ -11,8 +11,8 @@ use reposync_migration::{Error as MigrationError, SyncStrategy};
 use reposync_policy::check;
 use reposync_sync::Syncer;
 use reposync_transform::{
-    Append, Copy, Delete, DependencyRewrite, Filter, ImportRewrite, Metadata, Move, Patch, Prepend,
-    RegexReplace, Rename, Replace, StripPrefix, Transformation,
+    Append, Copy, Delete, DependencyRewrite, Filter, GlobalFn, ImportRewrite, Metadata, Move, Patch,
+    Prepend, RegexReplace, Rename, Replace, StringOp, StringTransform, StripPrefix, Transformation,
 };
 use sha2::{Digest, Sha256};
 
@@ -435,7 +435,7 @@ fn cmd_migrate(
             result.diff.renamed.len(),
         );
         if let Some(commit_id) = &result.commit_id {
-            println!("Commit: {}", commit_id);
+            println!("Commit: {commit_id}");
         }
         if result.pushed {
             println!("Pushed to {}", config.destination.url());
@@ -700,6 +700,7 @@ fn history_transforms(config: &ConfigFile) -> (Option<BTreeMap<String, String>>,
     (author_map, message_prefix)
 }
 
+#[allow(clippy::too_many_lines, clippy::too_many_arguments, clippy::redundant_closure_for_method_calls)]
 fn build_transforms(config: &ConfigFile) -> anyhow::Result<Vec<Box<dyn Transformation>>> {
     let mut transforms: Vec<Box<dyn Transformation>> = Vec::new();
     for node in &config.transform {
@@ -813,6 +814,351 @@ fn build_transforms(config: &ConfigFile) -> anyhow::Result<Vec<Box<dyn Transform
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("metadata transform missing arguments"))?;
                 Box::new(Metadata::new(args.key.clone(), args.value.clone()))
+            }
+            TransformKind::String => {
+                let args = node
+                    .string
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("string transform missing arguments"))?;
+                let op = match args.op.as_str() {
+                    "capitalize" => StringOp::Capitalize,
+                    "count" => StringOp::Count {
+                        pattern: args.pattern.clone().ok_or_else(|| {
+                            anyhow::anyhow!("count operation requires 'pattern' argument")
+                        })?,
+                    },
+                    "elems" => StringOp::Elems,
+                    "endswith" => StringOp::EndsWith {
+                        suffix: args.suffix.clone().ok_or_else(|| {
+                            anyhow::anyhow!("endswith operation requires 'suffix' argument")
+                        })?,
+                    },
+                    "find" => StringOp::Find {
+                        pattern: args.pattern.clone().ok_or_else(|| {
+                            anyhow::anyhow!("find operation requires 'pattern' argument")
+                        })?,
+                    },
+                    "format" => StringOp::Format {
+                        args: args.args.clone().ok_or_else(|| {
+                            anyhow::anyhow!("format operation requires 'args' argument")
+                        })?,
+                    },
+                    "index" => StringOp::Index {
+                        pattern: args.pattern.clone().ok_or_else(|| {
+                            anyhow::anyhow!("index operation requires 'pattern' argument")
+                        })?,
+                    },
+                    "isalnum" => StringOp::IsAlnum,
+                    "isalpha" => StringOp::IsAlpha,
+                    "isdigit" => StringOp::IsDigit,
+                    "islower" => StringOp::IsLower,
+                    "isspace" => StringOp::IsSpace,
+                    "istitle" => StringOp::IsTitle,
+                    "isupper" => StringOp::IsUpper,
+                    "join" => StringOp::Join {
+                        separator: args.separator.clone().ok_or_else(|| {
+                            anyhow::anyhow!("join operation requires 'separator' argument")
+                        })?,
+                    },
+                    "lower" => StringOp::Lower,
+                    "lstrip" => StringOp::LStrip {
+                        chars: args.chars.clone(),
+                    },
+                    "partition" => StringOp::Partition {
+                        sep: args.sep.clone().ok_or_else(|| {
+                            anyhow::anyhow!("partition operation requires 'sep' argument")
+                        })?,
+                    },
+                    "removeprefix" => StringOp::RemovePrefix {
+                        prefix: args.prefix.clone().ok_or_else(|| {
+                            anyhow::anyhow!("removeprefix operation requires 'prefix' argument")
+                        })?,
+                    },
+                    "removesuffix" => StringOp::RemoveSuffix {
+                        suffix: args.suffix.clone().ok_or_else(|| {
+                            anyhow::anyhow!("removesuffix operation requires 'suffix' argument")
+                        })?,
+                    },
+                    "replace" => StringOp::Replace {
+                        old: args.old.clone().ok_or_else(|| {
+                            anyhow::anyhow!("replace operation requires 'old' argument")
+                        })?,
+                        new: args.new.clone().ok_or_else(|| {
+                            anyhow::anyhow!("replace operation requires 'new' argument")
+                        })?,
+                    },
+                    "rfind" => StringOp::RFind {
+                        pattern: args.pattern.clone().ok_or_else(|| {
+                            anyhow::anyhow!("rfind operation requires 'pattern' argument")
+                        })?,
+                    },
+                    "rindex" => StringOp::RIndex {
+                        pattern: args.pattern.clone().ok_or_else(|| {
+                            anyhow::anyhow!("rindex operation requires 'pattern' argument")
+                        })?,
+                    },
+                    "rpartition" => StringOp::RPartition {
+                        sep: args.sep.clone().ok_or_else(|| {
+                            anyhow::anyhow!("rpartition operation requires 'sep' argument")
+                        })?,
+                    },
+                    "rsplit" => StringOp::RSplit {
+                        sep: args.sep.clone().ok_or_else(|| {
+                            anyhow::anyhow!("rsplit operation requires 'sep' argument")
+                        })?,
+                        maxsplit: args.maxsplit,
+                    },
+                    "rstrip" => StringOp::RStrip {
+                        chars: args.chars.clone(),
+                    },
+                    "split" => StringOp::Split {
+                        sep: args.sep.clone().ok_or_else(|| {
+                            anyhow::anyhow!("split operation requires 'sep' argument")
+                        })?,
+                        maxsplit: args.maxsplit,
+                    },
+                    "splitlines" => StringOp::SplitLines,
+                    "startswith" => StringOp::StartsWith {
+                        prefix: args.prefix.clone().ok_or_else(|| {
+                            anyhow::anyhow!("startswith operation requires 'prefix' argument")
+                        })?,
+                    },
+                    "strip" => StringOp::Strip {
+                        chars: args.chars.clone(),
+                    },
+                    "title" => StringOp::Title,
+                    "upper" => StringOp::Upper,
+                    _ => {
+                        return Err(anyhow::anyhow!("unknown string operation: {}", args.op))
+                    }
+                };
+                Box::new(StringTransform::new(args.file.clone(), op))
+            }
+            TransformKind::Globals => {
+                let args = node
+                    .globals
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("globals transform missing arguments"))?;
+                let global_fn = match args.fn_name.as_str() {
+                    "abs" => {
+                        let value = args.args.get("value").and_then(|v| v.as_i64()).ok_or_else(|| {
+                            anyhow::anyhow!("abs function requires 'value' as integer")
+                        })?;
+                        GlobalFn::Abs { value }
+                    }
+                    "all" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("all function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::All { values }
+                    }
+                    "any" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("any function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Any { values }
+                    }
+                    "bool" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("bool function requires 'value' as string")
+                        })?;
+                        GlobalFn::Bool { value: value.to_string() }
+                    }
+                    "dict" => {
+                        let pairs = args.args.get("pairs").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("dict function requires 'pairs' as array")
+                        })?;
+                        let pairs = pairs.iter().filter_map(|v| v.as_sequence()).filter_map(|pair| {
+                            Some((pair.first()?.as_str()?.to_string(), pair.get(1)?.as_str()?.to_string()))
+                        }).collect();
+                        GlobalFn::Dict { pairs }
+                    }
+                    "dir" => {
+                        let obj = args.args.get("obj").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("dir function requires 'obj' as string")
+                        })?;
+                        GlobalFn::Dir { obj: obj.to_string() }
+                    }
+                    "enumerate" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("enumerate function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Enumerate { values }
+                    }
+                    "fail" => {
+                        let message = args.args.get("message").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("fail function requires 'message' as string")
+                        })?;
+                        GlobalFn::Fail { message: message.to_string() }
+                    }
+                    "float" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("float function requires 'value' as string")
+                        })?;
+                        GlobalFn::Float { value: value.to_string() }
+                    }
+                    "getattr" => {
+                        let obj = args.args.get("obj").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("getattr function requires 'obj' as string")
+                        })?;
+                        let attr = args.args.get("attr").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("getattr function requires 'attr' as string")
+                        })?;
+                        GlobalFn::Getattr { obj: obj.to_string(), attr: attr.to_string() }
+                    }
+                    "glob" => {
+                        let pattern = args.args.get("pattern").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("glob function requires 'pattern' as string")
+                        })?;
+                        GlobalFn::Glob { pattern: pattern.to_string() }
+                    }
+                    "hasattr" => {
+                        let obj = args.args.get("obj").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("hasattr function requires 'obj' as string")
+                        })?;
+                        let attr = args.args.get("attr").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("hasattr function requires 'attr' as string")
+                        })?;
+                        GlobalFn::Hasattr { obj: obj.to_string(), attr: attr.to_string() }
+                    }
+                    "hash" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("hash function requires 'value' as string")
+                        })?;
+                        GlobalFn::Hash { value: value.to_string() }
+                    }
+                    "int" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("int function requires 'value' as string")
+                        })?;
+                        GlobalFn::Int { value: value.to_string() }
+                    }
+                    "len" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("len function requires 'value' as string")
+                        })?;
+                        GlobalFn::Len { value: value.to_string() }
+                    }
+                    "list" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("list function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::List { values }
+                    }
+                    "max" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("max function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Max { values }
+                    }
+                    "min" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("min function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Min { values }
+                    }
+                    "new_author" => {
+                        let name = args.args.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("new_author function requires 'name' as string")
+                        })?;
+                        let email = args.args.get("email").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("new_author function requires 'email' as string")
+                        })?;
+                        let time = args.args.get("time").and_then(|v| v.as_i64());
+                        GlobalFn::NewAuthor { name: name.to_string(), email: email.to_string(), time }
+                    }
+                    "parse_message" => {
+                        let message = args.args.get("message").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("parse_message function requires 'message' as string")
+                        })?;
+                        GlobalFn::ParseMessage { message: message.to_string() }
+                    }
+                    "print" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("print function requires 'value' as string")
+                        })?;
+                        GlobalFn::Print { value: value.to_string() }
+                    }
+                    "range" => {
+                        let start = args.args.get("start").and_then(|v| v.as_i64()).ok_or_else(|| {
+                            anyhow::anyhow!("range function requires 'start' as integer")
+                        })?;
+                        let end = args.args.get("end").and_then(|v| v.as_i64()).ok_or_else(|| {
+                            anyhow::anyhow!("range function requires 'end' as integer")
+                        })?;
+                        let step = args.args.get("step").and_then(|v| v.as_i64());
+                        GlobalFn::Range { start, end, step }
+                    }
+                    "repr" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("repr function requires 'value' as string")
+                        })?;
+                        GlobalFn::Repr { value: value.to_string() }
+                    }
+                    "reversed" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("reversed function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Reversed { values }
+                    }
+                    "set" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("set function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Set { values }
+                    }
+                    "sorted" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("sorted function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Sorted { values }
+                    }
+                    "str" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("str function requires 'value' as string")
+                        })?;
+                        GlobalFn::Str { value: value.to_string() }
+                    }
+                    "tuple" => {
+                        let values = args.args.get("values").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("tuple function requires 'values' as array")
+                        })?;
+                        let values = values.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect();
+                        GlobalFn::Tuple { values }
+                    }
+                    "type" => {
+                        let value = args.args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                            anyhow::anyhow!("type function requires 'value' as string")
+                        })?;
+                        GlobalFn::Type { value: value.to_string() }
+                    }
+                    "zip" => {
+                        let iterables = args.args.get("iterables").and_then(|v| v.as_sequence()).ok_or_else(|| {
+                            anyhow::anyhow!("zip function requires 'iterables' as array of arrays")
+                        })?;
+                        let iterables = iterables.iter().filter_map(|v| v.as_sequence()).map(|iter| {
+                            iter.iter().filter_map(|v| v.as_str()).map(std::string::ToString::to_string).collect()
+                        }).collect();
+                        GlobalFn::Zip { iterables }
+                    }
+                    _ => {
+                        return Err(anyhow::anyhow!("unknown global function: {}", args.fn_name))
+                    }
+                };
+                // Execute the global function and print result (for now)
+                let result = global_fn.execute().map_err(anyhow::Error::new)?;
+                println!("Globals: {result}");
+                // Globals don't modify the snapshot, so skip adding to transforms
+                continue;
             }
             TransformKind::Custom => {
                 let args = node
@@ -974,6 +1320,7 @@ fn exit_with_package_error(e: &reposync_package::PackageError) -> ! {
 // completions
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::needless_pass_by_value, clippy::unnecessary_wraps)]
 fn cmd_completions(args: CompletionsArgs) -> anyhow::Result<()> {
     let mut cmd = Cli::command();
     let name = cmd.get_name().to_string();
